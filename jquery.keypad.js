@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.2.2.
+   Keypad field entry extension for jQuery v1.2.3.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -341,8 +341,9 @@ $.extend(Keypad.prototype, {
 		offset = $.keypad._checkOffset(inst, offset, isFixed);
 		inst._mainDiv.css({position: (isFixed ? 'fixed' : 'absolute'), display: 'none',
 			left: offset.left + 'px', top: offset.top + 'px'});
-		var showAnim = $.keypad._get(inst, 'showAnim') || 'show';
+		var showAnim = $.keypad._get(inst, 'showAnim');
 		var duration = $.keypad._get(inst, 'duration');
+		duration = (duration == 'normal' && $.ui && $.ui.version >= '1.8' ? '_default' : duration);
 		var postProcess = function() {
 			$.keypad._keypadShowing = true;
 			var borders = $.keypad._getBorders(inst._mainDiv);
@@ -355,9 +356,9 @@ $.extend(Keypad.prototype, {
 				duration, postProcess);
 		}
 		else {
-			inst._mainDiv[showAnim](duration, postProcess);
+			inst._mainDiv[showAnim || 'show']((showAnim ? duration : ''), postProcess);
 		}
-		if (duration == '') {
+		if (!showAnim) {
 			postProcess();
 		}
 		if (inst._input[0].type != 'hidden') {
@@ -460,20 +461,20 @@ $.extend(Keypad.prototype, {
 		}
 		if (this._keypadShowing) {
 			duration = (duration != null ? duration : this._get(inst, 'duration'));
+			duration = (duration == 'normal' && $.ui && $.ui.version >= '1.8' ? '_default' : duration);
 			var showAnim = this._get(inst, 'showAnim');
-			if (duration != '' && $.effects && $.effects[showAnim]) {
-				inst._mainDiv.hide(showAnim, $.keypad._get(inst, 'showOptions'),
-					duration);
+			if ($.effects && $.effects[showAnim]) {
+				inst._mainDiv.hide(showAnim, this._get(inst, 'showOptions'), duration);
 			}
 			else {
-				inst._mainDiv[(duration == '' ? 'hide' : (showAnim == 'slideDown' ? 'slideUp' :
-					(showAnim == 'fadeIn' ? 'fadeOut' : 'hide')))](duration);
+				inst._mainDiv[(showAnim == 'slideDown' ? 'slideUp' :
+					(showAnim == 'fadeIn' ? 'fadeOut' : 'hide'))](showAnim ? duration : '');
 			}
 		}
 		var onClose = this._get(inst, 'onClose');
 		if (onClose) {
-			onClose.apply((inst._input ? inst._input[0] : null),
-				[inst._input.val(), inst]);  // trigger custom callback
+			onClose.apply((inst._input ? inst._input[0] : null),  // trigger custom callback
+				[inst._input.val(), inst]);
 		}
 		if (this._keypadShowing) {
 			this._keypadShowing = false;
