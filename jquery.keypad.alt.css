@@ -1,4 +1,4 @@
-/* Alternate style sheet for jQuery Keypad v1.2.3 */
+/* Alternate style sheet for jQuery Keypad v1.2.4 */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -79,6 +79,9 @@ img.keypad-trigger {
 }
 .keypad-spacebar {
 	width: 164px;
+}
+.keypad-enter {
+	width: 52px;
 }
 .keypad-clear, .keypad-back, .keypad-close, .keypad-shift {
 	width: 52px;

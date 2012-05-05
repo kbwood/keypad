@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.2.3.
+   Keypad field entry extension for jQuery v1.2.4.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -16,6 +16,7 @@ var PROP_NAME = 'keypad';
 function Keypad() {
 	this.BS = '\x08'; // Backspace
 	this.DEL = '\x7F'; // Delete
+	this.EN = '\x0D'; // Enter
 	this._curInst = null; // The current instance in use
 	this._disabledFields = []; // List of keypad fields that have been disabled
 	this._keypadShowing = false; // True if the popup panel is showing , false if not
@@ -29,6 +30,8 @@ function Keypad() {
 		clearStatus: 'Erase all the text', // Status text for clear link
 		backText: 'Back', // Display text for back link
 		backStatus: 'Erase the previous character', // Status text for back link
+		enterText: 'Enter', // Display text for carriage return
+		enterStatus: 'Carriage return', // Status text for carriage return
 		shiftText: 'Shift', // Display text for shift link
 		shiftStatus: 'Toggle upper/lower case characters', // Status text for shift link
 		alphabeticLayout: this.qwertyAlphabetic, // Default layout for alphabetic characters
@@ -51,7 +54,7 @@ function Keypad() {
 		layout: ['123' + this.CLOSE, '456' + this.CLEAR, '789' + this.BACK, this.SPACE + '0'], // Layout of keys
 		separator: '', // Separator character between keys
 		target: null, // Input target for an inline keypad
-		keypadOnly: true, // True for entry only via the keypad, false for keyboard too
+		keypadOnly: true, // True for entry only via the keypad, false for real keyboard too
 		randomiseAlphabetic: false, // True to randomise the alphabetic key positions, false to keep in order
 		randomiseNumeric: false, // True to randomise the numeric key positions, false to keep in order
 		randomiseOther: false, // True to randomise the other key positions, false to keep in order
@@ -71,15 +74,17 @@ var SH = '\x03';
 var SB = '\x04';
 var SP = '\x05';
 var HS = '\x06';
+var EN = '\x07';
 
 $.extend(Keypad.prototype, {
 	CLOSE: CL, // Key marker for close button
 	CLEAR: CR, // Key marker for clear button
 	BACK: BK, // Key marker for back button
 	SHIFT: SH, // Key marker for shift button
-	SPACE_BAR: SB, // Key marker for shift button
+	SPACE_BAR: SB, // Key marker for space bar button
 	SPACE: SP, // Key marker for an empty space
 	HALF_SPACE: HS, // Key marker for an empty half space
+	ENTER: EN, // Key marker for enter button
 
 	/* Standard US keyboard alphabetic layout. */
 	qwertyAlphabetic: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
@@ -89,7 +94,7 @@ $.extend(Keypad.prototype, {
 		'qwertyuiop\'"' + HS + '456',
 		HS + 'asdfghjkl;:' + SP + '123',
 		SP + 'zxcvbnm,.?' + SP + HS + '-0+',
-		SH + SP + SB + SP + SP + HS + BK + CR],
+		SH + SP + SB + EN + HS + BK + CR],
 	
 	/* Class name added to elements to indicate already configured with keypad. */
 	markerClassName: 'hasKeypad',
@@ -692,17 +697,20 @@ $.extend(Keypad.prototype, {
 					(keys[j] == this.BACK ? ' keypad-back' :
 					(keys[j] == this.CLOSE ? ' keypad-close' :
 					(keys[j] == this.SHIFT ? ' keypad-shift' :
-					(keys[j] == this.SPACE_BAR ? ' keypad-spacebar' : ''))))) + '" ' + 
+					(keys[j] == this.ENTER ? ' keypad-enter' :
+					(keys[j] == this.SPACE_BAR ? ' keypad-spacebar' : '')))))) + '" ' + 
 					'title="' + (keys[j] == this.CLEAR ? this._get(inst, 'clearStatus') :
 					(keys[j] == this.BACK ? this._get(inst, 'backStatus') :
+					(keys[j] == this.ENTER ? this._get(inst, 'enterStatus') :
 					(keys[j] == this.CLOSE ? this._get(inst, 'closeStatus') :
-					(keys[j] == this.SHIFT ? this._get(inst, 'shiftStatus') : '')))) + '">' +
+					(keys[j] == this.SHIFT ? this._get(inst, 'shiftStatus') : ''))))) + '">' +
 					(keys[j] == this.CLEAR ? this._get(inst, 'clearText') :
 					(keys[j] == this.BACK ? this._get(inst, 'backText') :
 					(keys[j] == this.CLOSE ? this._get(inst, 'closeText') :
 					(keys[j] == this.SHIFT ? this._get(inst, 'shiftText') :
+					(keys[j] == this.ENTER ? this._get(inst, 'enterText') :
 					(keys[j] == this.SPACE_BAR ? '&nbsp;' :
-					(keys[j] == ' ' ? '&nbsp;' : keys[j])))))) + '</button>'));
+					(keys[j] == ' ' ? '&nbsp;' : keys[j]))))))) + '</button>'));
 			}
 			html += '</div>';
 		}
@@ -721,7 +729,9 @@ $.extend(Keypad.prototype, {
 				$.keypad._hideKeypad();
 			}).end().
 			filter('.keypad-shift').click(function() { $.keypad._shiftKeypad(thisInst); }).end().
-			not('.keypad-clear').not('.keypad-back').not('.keypad-close').not('.keypad-shift').
+			filter('.keypad-enter').click(function() { $.keypad._selectValue(thisInst, $.keypad.EN); }).end().
+			not('.keypad-clear').not('.keypad-back').not('.keypad-close').
+			not('.keypad-shift').not('.keypad-enter').
 			click(function() { $.keypad._selectValue(thisInst, $(this).text()); });
 		return html;
 	},
