@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.1.0.
+   Keypad field entry extension for jQuery v1.2.0.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -47,13 +47,15 @@ function Keypad() {
 		keypadClass: '', // Additional CSS class for the keypad for an instance
 		prompt: '', // Display text at the top of the keypad
 		layout: ['123' + this.CLOSE, '456' + this.CLEAR, '789' + this.BACK, this.SPACE + '0'], // Layout of keys
+		separator: '', // Separator character between keys
 		keypadOnly: true, // True for entry only via the keypad, false for keyboard too
 		randomiseAlphabetic: false, // True to randomise the alphabetic key positions, false to keep in order
 		randomiseNumeric: false, // True to randomise the numeric key positions, false to keep in order
 		randomiseOther: false, // True to randomise the other key positions, false to keep in order
 		randomiseAll: false, // True to randomise all key positions, false to keep in order
-		onKeypress: null, // Define a callback function when a key is selected
-		onClose: null // Define a callback function when the panel is closed
+		beforeShow: null, // Callback before showing the keypad
+		onKeypress: null, // Callback when a key is selected
+		onClose: null // Callback when the panel is closed
 	};
 	$.extend(this._defaults, this.regional['']);
 	this.mainDiv = $('<div id="' + this._mainDivId + '" style="display: none;"></div>');
@@ -63,26 +65,28 @@ var CL = '\x00';
 var CR = '\x01';
 var BK = '\x02';
 var SH = '\x03';
-var SP = '\x04';
-var HS = '\x05';
+var SB = '\x04';
+var SP = '\x05';
+var HS = '\x06';
 
 $.extend(Keypad.prototype, {
 	CLOSE: CL, // Key marker for close button
 	CLEAR: CR, // Key marker for clear button
 	BACK: BK, // Key marker for back button
 	SHIFT: SH, // Key marker for shift button
+	SPACE_BAR: SB, // Key marker for shift button
 	SPACE: SP, // Key marker for an empty space
 	HALF_SPACE: HS, // Key marker for an empty half space
 
 	/* Standard US keyboard alphabetic layout. */
 	qwertyAlphabetic: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
 	/* Standard US keyboard layout. */
-	qwertyLayout: ['!@#$%^&*()_=',
-		'`~[]{}<>\\|/?' + HS + '789',
+	qwertyLayout: ['!@#$%^&*()_=' + HS + SP + CL,
+		HS + '`~[]{}<>\\|/' + SP + '789',
 		'qwertyuiop\'"' + HS + '456',
 		HS + 'asdfghjkl;:' + SP + '123',
-		SP + 'zxcvbnm ,.' + SP + HS + '-0+',
-		SP + SP + SH + SP + BK + SP + CR + SP + CL],
+		SP + 'zxcvbnm,.?' + SP + HS + '-0+',
+		SH + SP + SB + SP + SP + HS + BK + CR],
 	
 	/* Class name added to elements to indicate already configured with keypad. */
 	markerClassName: 'hasKeypad',
@@ -152,7 +156,8 @@ $.extend(Keypad.prototype, {
 					buttonStatus + '" title="' + buttonStatus + '"/>') :
 				$('<button type="button" title="' + buttonStatus + '"></button>').
 					html(buttonImage == '' ? buttonText :
-					$('<img src="' + buttonImage + '"/>')));
+					$('<img src="' + buttonImage + '" alt="' +
+					buttonStatus + '" title="' + buttonStatus + '"/>')));
 				field[isRTL ? 'before' : 'after'](trigger);
 				trigger.addClass(this._triggerClass).click(function() {
 					if ($.keypad._keypadShowing && $.keypad._lastField == target) {
@@ -246,9 +251,8 @@ $.extend(Keypad.prototype, {
 					return false;
 				}
 			});
-			var extras = this._getExtras(inline);
 			control.prepend('<div class="' + this._disableClass + '" style="width: ' +
-				(inline.width() + extras[0]) + 'px; height: ' + (inline.height() + extras[1]) +
+				inline.outerWidth() + 'px; height: ' + inline.outerHeight() +
 				'px; left: ' + (offset.left - relOffset.left) +
 				'px; top: ' + (offset.top - relOffset.top) + 'px;"></div>');
 			var inst = $.data(target, PROP_NAME);
@@ -324,13 +328,10 @@ $.extend(Keypad.prototype, {
 		var duration = $.keypad._get(inst, 'duration');
 		var postProcess = function() {
 			$.keypad._keypadShowing = true;
-			if (!inst._inline && $.browser.msie && parseInt($.browser.version, 10) < 7) {
-				// fix IE < 7 select problems
-				var extras = $.keypad._getExtras(inst._mainDiv);
-				$('iframe.' + $.keypad._coverClass).css({
-					width: inst._mainDiv.width() + extras[0],
-					height: inst._mainDiv.height() + extras[1]});
-			}
+			var borders = $.keypad._getBorders(inst._mainDiv);
+			inst._mainDiv.find('iframe.' + $.keypad._coverClass). // IE6- only
+				css({left: -borders[0], top: -borders[1],
+					width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
 		};
 		if ($.effects && $.effects[showAnim]) {
 			inst._mainDiv.show(showAnim, $.keypad._get(inst, 'showOptions'),
@@ -351,30 +352,31 @@ $.extend(Keypad.prototype, {
 	/* Generate the keypad content.
 	   @param  inst  (object) the instance settings */
 	_updateKeypad: function(inst) {
-		var extras = this._getExtras(inst._mainDiv);
-		var dims = {width: inst._mainDiv.width() + extras[0],
-			height: inst._mainDiv.height() + extras[1]};
+		var borders = this._getBorders(inst._mainDiv);
 		inst._mainDiv.empty().append(this._generateHTML(inst)).
-			find('iframe.' + $.keypad._coverClass).
-			css({width: dims.width, height: dims.height});
+			find('iframe.' + this._coverClass). // IE6- only
+			css({left: -borders[0], top: -borders[1],
+				width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
 		inst._mainDiv.removeClass().addClass(this._get(inst, 'keypadClass') +
 			(this._get(inst, 'isRTL') ? ' keypad-rtl' : '') +
 			(inst._inline ? this._inlineClass : ''));
+		var beforeShow = this._get(inst, 'beforeShow');
+		if (beforeShow) {
+			beforeShow.apply((inst._input ? inst._input[0] : null),
+				[inst._mainDiv, inst]);
+		}
 	},
 
-	/* Retrieve the size of borders and padding for an element.
+	/* Retrieve the size of left and top borders for an element.
 	   @param  elem  (jQuery object) the element of interest
-	   @return  (number[2]) the horizontal and vertical sizes */
-	_getExtras: function(elem) {
+	   @return  (number[2]) the left and top borders */
+	_getBorders: function(elem) {
 		var convert = function(value) {
-			return {thin: 1, medium: 3, thick: 5}[value] || value;
+			var extra = ($.browser.msie ? 1 : 0);
+			return {thin: 1 + extra, medium: 3 + extra, thick: 5 + extra}[value] || value;
 		};
-		return [parseInt(convert(elem.css('border-left-width')), 10) +
-			parseInt(convert(elem.css('border-right-width')), 10) +
-			parseInt(elem.css('padding-left'), 10) + parseInt(elem.css('padding-right'), 10),
-			parseInt(convert(elem.css('border-top-width')), 10) +
-			parseInt(convert(elem.css('border-bottom-width')), 10) +
-			parseInt(elem.css('padding-top'), 10) + parseInt(elem.css('padding-bottom'), 10)];
+		return [parseFloat(convert(elem.css('border-left-width'))),
+			parseFloat(convert(elem.css('border-top-width')))];
 	},
 
 	/* Check positioning to remain on screen.
@@ -391,26 +393,27 @@ $.extend(Keypad.prototype, {
 		if (($.browser.msie && parseInt($.browser.version, 10) < 7) || $.browser.opera) {
 			// recalculate width as otherwise set to 100%
 			var width = 0;
-			$('.keypad-row', inst._mainDiv).find('button:last').each(function() {
-				width = Math.max(width, this.offsetLeft + this.offsetWidth +
+			inst._mainDiv.find(':not(div,iframe)').each(function() {
+				width = Math.max(width, this.offsetLeft + $(this).outerWidth() +
 					parseInt($(this).css('margin-right'), 10));
 			});
 			inst._mainDiv.css('width', width);
 		}
 		// reposition keypad panel horizontally if outside the browser window
-		if (this._get(inst, 'isRTL') || (offset.left + inst._mainDiv.width() - scrollX) > browserWidth) {
+		if (this._get(inst, 'isRTL') ||
+				(offset.left + inst._mainDiv.outerWidth() - scrollX) > browserWidth) {
 			offset.left = Math.max((isFixed ? 0 : scrollX),
-				pos[0] + (inst._input ? inst._input.width() : 0) -
-				(isFixed ? scrollX : 0) - inst._mainDiv.width() -
+				pos[0] + (inst._input ? inst._input.outerWidth() : 0) -
+				(isFixed ? scrollX : 0) - inst._mainDiv.outerWidth() -
 				(isFixed && $.browser.opera ? document.documentElement.scrollLeft : 0));
 		}
 		else {
 			offset.left -= (isFixed ? scrollX : 0);
 		}
 		// reposition keypad panel vertically if outside the browser window
-		if ((offset.top + inst._mainDiv.height() - scrollY) > browserHeight) {
+		if ((offset.top + inst._mainDiv.outerHeight() - scrollY) > browserHeight) {
 			offset.top = Math.max((isFixed ? 0 : scrollY),
-				pos[1] - (isFixed ? scrollY : 0) - inst._mainDiv.height() -
+				pos[1] - (isFixed ? scrollY : 0) - inst._mainDiv.outerHeight() -
 				(isFixed && $.browser.opera ? document.documentElement.scrollTop : 0));
 		}
 		else {
@@ -501,6 +504,7 @@ $.extend(Keypad.prototype, {
 	   @param  inst  (object) the instance settings */
 	_clearValue: function(inst) {
 		this._setValue(inst, '', 0);
+		this._notifyKeypress(inst, '');
 	},
 
 	/* Erase the last character.
@@ -510,8 +514,8 @@ $.extend(Keypad.prototype, {
 		var value = inst._input.val();
 		var range = [value.length, value.length];
 		if (field.setSelectionRange) { // Mozilla
-			range = (inst._input.attr('readonly') ? range :
-				[field.selectionStart, field.selectionEnd]);
+			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+				range : [field.selectionStart, field.selectionEnd]);
 		}
 		else if (field.createTextRange) { // IE
 			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
@@ -519,6 +523,7 @@ $.extend(Keypad.prototype, {
 		}
 		this._setValue(inst, (value.length == 0 ? '' :
 			value.substr(0, range[0] - 1) + value.substr(range[1])), range[0] - 1);
+		this._notifyKeypress(inst, '');
 	},
 
 	/* Update the text field with the selected value.
@@ -526,19 +531,20 @@ $.extend(Keypad.prototype, {
 	   @param  value  (string) the new character to add */
 	_selectValue: function(inst, value) {
 		var field = inst._input[0];
-		var curValue = inst._input.val();
-		var range = [curValue.length, curValue.length];
+		var newValue = inst._input.val();
+		var range = [newValue.length, newValue.length];
 		if (field.setSelectionRange) { // Mozilla
-			range = (inst._input.attr('readonly') ? range :
-				[field.selectionStart, field.selectionEnd]);
+			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+				range : [field.selectionStart, field.selectionEnd]);
 		}
 		else if (field.createTextRange) { // IE
 			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
 				range : this._getIERange(field));
 		}
 		var pos = range[0] + value.length;
-		value = curValue.substr(0, range[0]) + value + curValue.substr(range[1]);
-		this._setValue(inst, value, pos);
+		newValue = newValue.substr(0, range[0]) + value + newValue.substr(range[1]);
+		this._setValue(inst, newValue, pos);
+		this._notifyKeypress(inst, value);
 	},
 
 	/* Get the coordinates for the selected area in the text field in IE.
@@ -601,24 +607,30 @@ $.extend(Keypad.prototype, {
 			value = value.substr(0, maxlen);
 		}
 		inst._input.val(value);
-		var onKeypress = this._get(inst, 'onKeypress');
-		if (onKeypress) { // trigger custom callback
-			onKeypress.apply((inst._input ? inst._input[0] : null), [value, inst]);
-		}
-		else {
+		if (!this._get(inst, 'onKeypress')) {
 			inst._input.trigger('change'); // fire the change event
 		}
-		if (inst._input.css('display') != 'hidden') {
+		if (inst._input.css('display') != 'none') {
 			inst._input.focus(); // for further typing
 		}
 		var field = inst._input[0];
 		if (field.setSelectionRange) { // Mozilla
-			field.setSelectionRange(pos, pos);
+			if (inst._input.css('display') != 'none') {
+				field.setSelectionRange(pos, pos);
+			}
 		}
 		else if (field.createTextRange) { // IE
 			var range = field.createTextRange();
 			range.move('character', pos);
 			range.select();
+		}
+	},
+
+	_notifyKeypress: function(inst, key) {
+		var onKeypress = this._get(inst, 'onKeypress');
+		if (onKeypress) { // trigger custom callback
+			onKeypress.apply((inst._input ? inst._input[0] : null),
+				[key, inst._input.val(), inst]);
 		}
 	},
 
@@ -637,32 +649,35 @@ $.extend(Keypad.prototype, {
 	_generateHTML: function(inst) {
 		var isRTL = this._get(inst, 'isRTL');
 		var prompt = this._get(inst, 'prompt');
+		var separator = this._get(inst, 'separator');
 		var html = (!prompt ? '' :
 			'<div class="keypad-prompt">' + prompt + '</div>');
 		var layout = this._randomiseLayout(inst);
 		for (var i = 0; i < layout.length; i++) {
 			html += '<div class="keypad-row">';
-			for (var j = 0; j < layout[i].length; j++) {
-				var ch = layout[i].charAt(j);
+			var keys = layout[i].split(separator);
+			for (var j = 0; j < keys.length; j++) {
 				if (inst.ucase) {
-					ch = ch.toUpperCase();
+					keys[j] = keys[j].toUpperCase();
 				}
-				html += (ch == this.SPACE ? '<div class="keypad-space"></div>' :
-					(ch == this.HALF_SPACE ? '<div class="keypad-half-space"></div>' :
+				html += (keys[j] == this.SPACE ? '<div class="keypad-space"></div>' :
+					(keys[j] == this.HALF_SPACE ? '<div class="keypad-half-space"></div>' :
 					'<button type="button" class="keypad-key' +
-					(ch == this.CLEAR ? ' keypad-clear' :
-					(ch == this.BACK ? ' keypad-back' :
-					(ch == this.CLOSE ? ' keypad-close' :
-					(ch == this.SHIFT ? ' keypad-shift' : '')))) + '" ' + 
-					'title="' + (ch == this.CLEAR ? this._get(inst, 'clearStatus') :
-					(ch == this.BACK ? this._get(inst, 'backStatus') :
-					(ch == this.CLOSE ? this._get(inst, 'closeStatus') :
-					(ch == this.SHIFT ? this._get(inst, 'shiftStatus') : '')))) + '">' +
-					(ch == this.CLEAR ? this._get(inst, 'clearText') :
-					(ch == this.BACK ? this._get(inst, 'backText') :
-					(ch == this.CLOSE ? this._get(inst, 'closeText') :
-					(ch == this.SHIFT ? this._get(inst, 'shiftText') :
-					(ch == ' ' ? '&nbsp;' : ch))))) + '</button>'));
+					(keys[j] == this.CLEAR ? ' keypad-clear' :
+					(keys[j] == this.BACK ? ' keypad-back' :
+					(keys[j] == this.CLOSE ? ' keypad-close' :
+					(keys[j] == this.SHIFT ? ' keypad-shift' :
+					(keys[j] == this.SPACE_BAR ? ' keypad-spacebar' : ''))))) + '" ' + 
+					'title="' + (keys[j] == this.CLEAR ? this._get(inst, 'clearStatus') :
+					(keys[j] == this.BACK ? this._get(inst, 'backStatus') :
+					(keys[j] == this.CLOSE ? this._get(inst, 'closeStatus') :
+					(keys[j] == this.SHIFT ? this._get(inst, 'shiftStatus') : '')))) + '">' +
+					(keys[j] == this.CLEAR ? this._get(inst, 'clearText') :
+					(keys[j] == this.BACK ? this._get(inst, 'backText') :
+					(keys[j] == this.CLOSE ? this._get(inst, 'closeText') :
+					(keys[j] == this.SHIFT ? this._get(inst, 'shiftText') :
+					(keys[j] == this.SPACE_BAR ? '&nbsp;' :
+					(keys[j] == ' ' ? '&nbsp;' : keys[j])))))) + '</button>'));
 			}
 			html += '</div>';
 		}
@@ -681,7 +696,7 @@ $.extend(Keypad.prototype, {
 				$.keypad._hideKeypad();
 			}).end().
 			filter('.keypad-shift').click(function() { $.keypad._shiftKeypad(thisInst); }).end().
-			not('.keypad-clear,.keypad-back,.keypad-close,.keypad-shift').
+			not('.keypad-clear').not('.keypad-back').not('.keypad-close').not('.keypad-shift').
 			click(function() { $.keypad._selectValue(thisInst, $(this).text()); });
 		return html;
 	},
@@ -701,65 +716,55 @@ $.extend(Keypad.prototype, {
 		}
 		var isNumeric = this._get(inst, 'isNumeric');
 		var isAlphabetic = this._get(inst, 'isAlphabetic');
+		var separator = this._get(inst, 'separator');
 		var numerics = [];
 		var alphas = [];
 		var others = [];
 		var newLayout = [];
-		// find characters of different types
+		// Find characters of different types
 		for (var i = 0; i < layout.length; i++) {
 			newLayout[i] = '';
-			for (var j = 0; j < layout[i].length; j++) {
-				var ch = layout[i].charAt(j);
+			var keys = layout[i].split(separator);
+			for (var j = 0; j < keys.length; j++) {
+				if (this._isControl(keys[j])) {
+					continue;
+				}
 				if (randomiseAll) {
-					if (!this._isControl(ch)) {
-						others.push(ch);
-					}
+					others.push(keys[j]);
+				}
+				else if (isNumeric(keys[j])) {
+					numerics.push(keys[j]);
+				}
+				else if (isAlphabetic(keys[j])) {
+					alphas.push(keys[j]);
 				}
 				else {
-					if (isNumeric(ch)) {
-						if (randomiseNumeric) {
-							numerics.push(ch);
-						}
-					}
-					else if (isAlphabetic(ch)) {
-						if (randomiseAlpha) {
-							alphas.push(ch);
-						}
-					}
-					else if (!this._isControl(ch)) {
-						if (randomiseOther) {
-							others.push(ch);
-						}
-					}
+					others.push(keys[j]);
 				}
 			}
 		}
-		// shuffle them
-		this._shuffle(numerics);
-		this._shuffle(alphas);
-		this._shuffle(others);
-		var ni = 0;
-		var ai = 0;
-		var oi = 0;
-		// and replace them in the layout
+		// Shuffle them
+		if (randomiseNumeric) {
+			this._shuffle(numerics);
+		}
+		if (randomiseAlpha) {
+			this._shuffle(alphas);
+		}
+		if (randomiseOther || randomiseAll) {
+			this._shuffle(others);
+		}
+		var n = 0;
+		var a = 0;
+		var o = 0;
+		// And replace them in the layout
 		for (var i = 0; i < layout.length; i++) {
-			for (var j = 0; j < layout[i].length; j++) {
-				var ch = layout[i].charAt(j);
-				if (this._isControl(ch)) {
-					newLayout[i] += ch;
-				}
-				else if (randomiseAll) {
-					newLayout[i] += others[oi++];
-				}
-				else if (isNumeric(ch)) {
-					newLayout[i] += (randomiseNumeric ? numerics[ni++] : ch);
-				}
-				else if (isAlphabetic(ch)) {
-					newLayout[i] += (randomiseAlpha ? alphas[ai++] : ch);
-				}
-				else {
-					newLayout[i] += (randomiseOther ? others[oi++] : ch);
-				}
+			var keys = layout[i].split(separator);
+			for (var j = 0; j < keys.length; j++) {
+				newLayout[i] += (this._isControl(keys[j]) ? keys[j] :
+					(randomiseAll ? others[o++] :
+					(isNumeric(keys[j]) ? numerics[n++] :
+					(isAlphabetic(keys[j]) ? alphas[a++] :
+					others[o++])))) + separator;
 			}
 		}
 		return newLayout;
