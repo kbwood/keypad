@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.2.0.
+   Keypad field entry extension for jQuery v1.2.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -14,6 +14,8 @@ var PROP_NAME = 'keypad';
    Settings for keypad fields are maintained in instance objects,
    allowing multiple different settings on the same page. */
 function Keypad() {
+	this.BS = '\x08'; // Backspace
+	this.DEL = '\x7F'; // Delete
 	this._curInst = null; // The current instance in use
 	this._disabledFields = []; // List of keypad fields that have been disabled
 	this._keypadShowing = false; // True if the popup panel is showing , false if not
@@ -48,6 +50,7 @@ function Keypad() {
 		prompt: '', // Display text at the top of the keypad
 		layout: ['123' + this.CLOSE, '456' + this.CLEAR, '789' + this.BACK, this.SPACE + '0'], // Layout of keys
 		separator: '', // Separator character between keys
+		target: null, // Input target for an inline keypad
 		keypadOnly: true, // True for entry only via the keypad, false for keyboard too
 		randomiseAlphabetic: false, // True to randomise the alphabetic key positions, false to keep in order
 		randomiseNumeric: false, // True to randomise the numeric key positions, false to keep in order
@@ -108,23 +111,36 @@ $.extend(Keypad.prototype, {
 	},
 
 	/* Attach the keypad to a jQuery selection.
-	   @param  target    (element) the target text field
+	   @param  target    (element) the target control
 	   @param  settings  (object) the new settings to use for this instance */
 	_attachKeypad: function(target, settings) {
-		var $target = $(target);
 		var inline = (target.nodeName.toLowerCase() != 'input' &&
 			target.nodeName.toLowerCase() != 'textarea');
-		var keyEntry = (!inline ? null :
-			$('<input type="text" class="' + this._inlineEntryClass + '" disabled="disabled"/>'));
-		var inst = {_input: (inline ? keyEntry : $target), _inline: inline,
+		var inst = {_inline: inline,
 			_mainDiv: (inline ? $('<div class="' + this._inlineClass + '"></div>') :
 			$.keypad.mainDiv), ucase: false};
 		inst.settings = $.extend({}, settings || {}); 
+		this._setInput(target, inst);
 		this._connectKeypad(target, inst);
 		if (inline) {
-			$target.append(keyEntry).append(inst._mainDiv).
-				bind('click.keypad', function() { keyEntry.focus(); });
+			$(target).append(inst._mainDiv).
+				bind('click.keypad', function() { inst._input.focus(); });
 			this._updateKeypad(inst);
+		}
+	},
+
+	/* Determine the input field for the keypad.
+	   @param  target  (jQuery) the target control
+	   @param  inst    (object) the instance settings */
+	_setInput: function(target, inst) {
+		inst._input = $(!inst._inline ? target : this._get(inst, 'target') ||
+			'<input type="text" class="' + this._inlineEntryClass + '" disabled="disabled"/>');
+		if (inst._inline) {
+			target = $(target);
+			target.find('input').remove();
+			if (!this._get(inst, 'target')) {
+				target.append(inst._input);
+			}
 		}
 	},
 
@@ -287,6 +303,7 @@ $.extend(Keypad.prototype, {
 				this._hideKeypad();
 			}
 			extendRemove(inst.settings, settings);
+			this._setInput($(target), inst);
 			this._updateKeypad(inst);
 		}
 	},
@@ -504,7 +521,7 @@ $.extend(Keypad.prototype, {
 	   @param  inst  (object) the instance settings */
 	_clearValue: function(inst) {
 		this._setValue(inst, '', 0);
-		this._notifyKeypress(inst, '');
+		this._notifyKeypress(inst, $.keypad.DEL);
 	},
 
 	/* Erase the last character.
@@ -523,7 +540,7 @@ $.extend(Keypad.prototype, {
 		}
 		this._setValue(inst, (value.length == 0 ? '' :
 			value.substr(0, range[0] - 1) + value.substr(range[1])), range[0] - 1);
-		this._notifyKeypress(inst, '');
+		this._notifyKeypress(inst, $.keypad.BS);
 	},
 
 	/* Update the text field with the selected value.

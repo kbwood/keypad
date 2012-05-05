@@ -1,4 +1,4 @@
-/* Alternate style sheet for jQuery Keypad v1.2.0 */
+/* Alternate style sheet for jQuery Keypad v1.2.1 */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -12,11 +12,12 @@ img.keypad-trigger {
 	z-index: 10;
 	margin: 0;
 	padding: 0;
+	background-color: #fff;
+	color: #000;
 	border: 1px solid #888;
+	border-radius: 4px;
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
-	color: #000;
-	background-color: #fff;
 	font-family: Arial,Helvetica,sans-serif;
 	font-size: 14px;
 }
@@ -24,10 +25,11 @@ img.keypad-trigger {
 	display: none;
 }
 .keypad-inline {
+	background-color: #f4f4f4;
 	border: 1px solid #888;
+	border-radius: 4px;
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
-	background-color: #f4f4f4;
 }
 .keypad-disabled {
 	position: absolute;
