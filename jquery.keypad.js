@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.0.1.
+   Keypad field entry extension for jQuery v1.0.2.
    Written by Keith Wood (kbwood@virginbroadband.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -55,6 +55,7 @@ function Keypad() {
 		randomiseAlphabetic: false, // True to randomise the alphabetic key positions, false to keep in order
 		randomiseNumeric: false, // True to randomise the numeric key positions, false to keep in order
 		randomiseOther: false, // True to randomise the other key positions, false to keep in order
+		randomiseAll: false, // True to randomise all key positions, false to keep in order
 		onKeypress: null, // Define a callback function when a key is selected
 		onClose: null // Define a callback function when the panel is closed
 	};
@@ -286,9 +287,10 @@ $.extend(Keypad.prototype, {
 		var duration = $.keypad._get(inst, 'duration');
 		var postProcess = function() {
 			$.keypad._keypadShowing = true;
-			if ($.browser.msie && parseInt($.browser.version) < 7) { // fix IE < 7 select problems
-				$('iframe.keypad-cover').css({width: inst.mainDiv.width() + 4,
-					height: inst.mainDiv.height() + 4});
+			if ($.browser.msie && parseInt($.browser.version, 10) < 7) { // fix IE < 7 select problems
+				var extras = $.keypad._getExtras(inst.mainDiv);
+				$('iframe.keypad-cover').css({width: inst.mainDiv.width() + extras[0],
+					height: inst.mainDiv.height() + extras[1]});
 			}
 		};
 		if ($.effects && $.effects[showAnim]) {
@@ -309,13 +311,29 @@ $.extend(Keypad.prototype, {
 	/* Generate the keypad content.
 	   @param  inst  (object) the instance settings */
 	_updateKeypad: function(inst) {
-		var dims = {width: inst.mainDiv.width() + 4,
-			height: inst.mainDiv.height() + 4};
+		var extras = this._getExtras(inst.mainDiv);
+		var dims = {width: inst.mainDiv.width() + extras[0],
+			height: inst.mainDiv.height() + extras[1]};
 		inst.mainDiv.empty().append(this._generateHTML(inst)).
 			find('iframe.keypad-cover').
 			css({width: dims.width, height: dims.height});
 		inst.mainDiv.removeClass().addClass(this._get(inst, 'keypadClass') +
 			(this._get(inst, 'isRTL') ? ' keypad-rtl' : ''));
+	},
+
+	/* Retrieve the size of borders and padding for an element.
+	   @param  elem  (jQuery object) the element of interest
+	   @return  (number[2]) the horizontal and vertical sizes */
+	_getExtras: function(elem) {
+		var convert = function(value) {
+			return {thin: 1, medium: 2, thick: 3}[value] || value;
+		};
+		return [parseInt(convert(elem.css('border-left-width')), 10) +
+			parseInt(convert(elem.css('border-right-width')), 10) +
+			parseInt(elem.css('padding-left'), 10) + parseInt(elem.css('padding-right'), 10),
+			parseInt(convert(elem.css('border-top-width')), 10) +
+			parseInt(convert(elem.css('border-bottom-width')), 10) +
+			parseInt(elem.css('padding-top'), 10) + parseInt(elem.css('padding-bottom'), 10)];
 	},
 
 	/* Check positioning to remain on screen.
@@ -329,11 +347,12 @@ $.extend(Keypad.prototype, {
 		var browserHeight = window.innerHeight || document.documentElement.clientHeight;
 		var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
 		var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
-		if ($.browser.opera) { // recalculate width as otherwise set to 100%
+		if (($.browser.msie && parseInt($.browser.version, 10) < 7) || $.browser.opera) {
+			// recalculate width as otherwise set to 100%
 			var width = 0;
 			$('.keypad-row', inst.mainDiv).find('button:last').each(function() {
 				width = Math.max(width, this.offsetLeft + this.offsetWidth +
-					parseInt($(this).css('margin-right')));
+					parseInt($(this).css('margin-right'), 10));
 			});
 			inst.mainDiv.css('width', width);
 		}
@@ -406,10 +425,9 @@ $.extend(Keypad.prototype, {
 			return;
 		}
 		var target = $(event.target);
-		if (target[0].id != $.keypad._mainDivId &&
-				target.parents('#' + $.keypad._mainDivId).length == 0 &&
+		if (!target.parents().andSelf().is('#' + $.keypad._mainDivId) &&
 				!target.hasClass($.keypad.markerClassName) &&
-				!target.hasClass($.keypad._triggerClass) &&
+				!target.parents().andSelf().hasClass($.keypad._triggerClass) &&
 				$.keypad._keypadShowing) {
 			$.keypad._hideKeypad(null, '');
 		}
@@ -607,7 +625,7 @@ $.extend(Keypad.prototype, {
 			html += '</div>';
 		}
 		html += '<div style="clear: both;"></div>' + 
-			($.browser.msie && parseInt($.browser.version) < 7 ? 
+			($.browser.msie && parseInt($.browser.version, 10) < 7 ? 
 			'<iframe src="javascript:false;" class="keypad-cover"></iframe>' : '');
 		return html;
 	},
@@ -620,8 +638,9 @@ $.extend(Keypad.prototype, {
 		var randomiseNumeric = this._get(inst, 'randomiseNumeric');
 		var randomiseAlpha = this._get(inst, 'randomiseAlphabetic');
 		var randomiseOther = this._get(inst, 'randomiseOther');
+		var randomiseAll = this._get(inst, 'randomiseAll');
 		var layout = this._get(inst, 'layout');
-		if (!randomiseNumeric && !randomiseAlpha && !randomiseOther) {
+		if (!randomiseNumeric && !randomiseAlpha && !randomiseOther && !randomiseAll) {
 			return layout;
 		}
 		var isNumeric = this._get(inst, 'isNumeric');
@@ -635,19 +654,26 @@ $.extend(Keypad.prototype, {
 			newLayout[i] = '';
 			for (var j = 0; j < layout[i].length; j++) {
 				var ch = layout[i].charAt(j);
-				if (isNumeric(ch)) {
-					if (randomiseNumeric) {
-						numerics[numerics.length] = ch;
+				if (randomiseAll) {
+					if (!this._isControl(ch)) {
+						others.push(ch);
 					}
 				}
-				else if (isAlphabetic(ch)) {
-					if (randomiseAlpha) {
-						alphas[alphas.length] = ch;
+				else {
+					if (isNumeric(ch)) {
+						if (randomiseNumeric) {
+							numerics.push(ch);
+						}
 					}
-				}
-				else if (!this._isControl(ch)) {
-					if (randomiseOther) {
-						others[others.length] = ch;
+					else if (isAlphabetic(ch)) {
+						if (randomiseAlpha) {
+							alphas.push(ch);
+						}
+					}
+					else if (!this._isControl(ch)) {
+						if (randomiseOther) {
+							others.push(ch);
+						}
 					}
 				}
 			}
@@ -665,6 +691,9 @@ $.extend(Keypad.prototype, {
 				var ch = layout[i].charAt(j);
 				if (this._isControl(ch)) {
 					newLayout[i] += ch;
+				}
+				else if (randomiseAll) {
+					newLayout[i] += others[oi++];
 				}
 				else if (isNumeric(ch)) {
 					newLayout[i] += (randomiseNumeric ? numerics[ni++] : ch);
