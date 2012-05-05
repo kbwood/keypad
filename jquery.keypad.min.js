@@ -1,5 +1,5 @@
 ﻿/* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.4.0.
+   Keypad field entry extension for jQuery v1.4.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 

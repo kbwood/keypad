@@ -1,4 +1,4 @@
-/* Main style sheet for jQuery Keypad v1.4.0 */
+/* Main style sheet for jQuery Keypad v1.4.1. */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -6,6 +6,10 @@ button.keypad-trigger {
 img.keypad-trigger {
 	margin: 2px;
 	vertical-align: middle;
+}
+.keypad-popup, .keypad-inline, .keypad-key, .keypad-special {
+	font-family: Arial,Helvetica,sans-serif;
+	font-size: 14px;
 }
 .keypad-popup {
 	display: none;
@@ -15,11 +19,9 @@ img.keypad-trigger {
 	background-color: #fff;
 	color: #000;
 	border: 1px solid #888;
-	border-radius: 4px;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
-	font-family: Arial,Helvetica,sans-serif;
-	font-size: 14px;
+	border-radius: 0.25em;
+	-moz-border-radius: 0.25em;
+	-webkit-border-radius: 0.25em;
 }
 .keypad-keyentry {
 	display: none;
@@ -27,9 +29,9 @@ img.keypad-trigger {
 .keypad-inline {
 	background-color: #fff;
 	border: 1px solid #888;
-	border-radius: 4px;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
+	border-radius: 0.25em;
+	-moz-border-radius: 0.25em;
+	-webkit-border-radius: 0.25em;
 }
 .keypad-disabled {
 	position: absolute;
@@ -46,7 +48,7 @@ img.keypad-trigger {
 	text-align: center;
 }
 .keypad-prompt.ui-widget-header {
-	margin: 2px;
+	margin: 0.125em;
 }
 .keypad-row {
 	clear: both;
@@ -55,47 +57,49 @@ img.keypad-trigger {
 }
 .keypad-space {
 	float: left;
-	margin: 2px;
-	width: 24px;
+	margin: 0.125em;
+	width: 2em;
 }
 * html .keypad-space { /* IE6 */
-	margin: 0px;
-	width: 28px;
+	margin: 0em;
+	width: 2.25em;
 }
 .keypad-half-space {
 	float: left;
-	margin: 1px;
-	width: 12px;
+	margin: 0.125em 0.0625em;
+	width: 1em;
 }
 * html .keypad-half-space { /* IE6 */
-	margin: 0px;
-	width: 14px;
+	margin: 0em;
+	width: 1.125em;
 }
 .keypad-key, .keypad-special {
 	float: left;
-	margin: 2px;
-	padding: 0px;
-	width: 24px;
+	margin: 0.125em;
+	padding: 0em;
+	width: 2em;
 	background-color: #f4f4f4;
-	border-radius: 4px;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
+	border-radius: 0.25em;
+	-moz-border-radius: 0.25em;
+	-webkit-border-radius: 0.25em;
 	text-align: center;
 	cursor: pointer;
 }
 .keypad-key[disabled] {
-	border: 2px outset;
+	border: 0.125em outset;
 }
 .keypad-key-down {
 }
-.keypad-spacebar {
-	width: 164px;
+.keypad-special {
+	width: 4.25em;
 }
-.keypad-enter {
-	width: 52px;
+.keypad-spacebar {
+	width: 13.25em;
+}
+.keypad-tab {
+	width: 2em;
 }
 .keypad-clear, .keypad-back, .keypad-close, .keypad-shift {
-	width: 52px;
 	color: #fff;
 	font-weight: bold;
 }
