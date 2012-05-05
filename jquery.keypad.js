@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.0.0.
+   Keypad field entry extension for jQuery v1.0.1.
    Written by Keith Wood (kbwood@virginbroadband.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -528,6 +528,10 @@ $.extend(Keypad.prototype, {
 	   @param  value  (string) the new value for the text field
 	   @param  pos    (int) the new cursor position */
 	_setValue: function(inst, value, pos) {
+		var maxlen = inst.field.attr('maxlength');
+		if (maxlen > -1) {
+			value = value.substr(0, maxlen);
+		}
 		inst.field.val(value);
 		var onKeypress = this._get(inst, 'onKeypress');
 		if (onKeypress) { // trigger custom callback
