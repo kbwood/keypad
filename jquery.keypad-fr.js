@@ -1,10 +1,10 @@
 ﻿/* http://keith-wood.name/keypad.html
    French initialisation for the jQuery keypad extension
-   Written by Keith Wood (kbwood@virginbroadband.com.au) August 2008. */
+   Written by Keith Wood (kbwood{at}iinet.com.au) August 2008. */
 (function($) { // hide the namespace
 
 $.keypad.azertyAlphabetic = ['àâçéèêîôùû', 'azertyuiop', 'qsdfghjklm', 'wxcvbn'];
-$.keypad.azertyLayout = ['&~#{([_^@)]}=§', '<>|`°£$€*!?', //'<>"\'|`\\°£$€*!?',
+$.keypad.azertyLayout = ['&~#{([_^@)]}=§', '<>|`°£$€*!?',
 	$.keypad.HALF_SPACE + $.keypad.azertyAlphabetic[0] + $.keypad.HALF_SPACE + '789',
 	$.keypad.azertyAlphabetic[1] + '%456',
 	$.keypad.HALF_SPACE + $.keypad.azertyAlphabetic[2] + $.keypad.HALF_SPACE + '123',

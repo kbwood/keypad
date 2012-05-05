@@ -1,6 +1,6 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.0.2.
-   Written by Keith Wood (kbwood@virginbroadband.com.au) August 2008.
+   Keypad field entry extension for jQuery v1.1.0.
+   Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
    Please attribute the author if you use it. */
@@ -17,10 +17,6 @@ function Keypad() {
 	this._curInst = null; // The current instance in use
 	this._disabledFields = []; // List of keypad fields that have been disabled
 	this._keypadShowing = false; // True if the popup panel is showing , false if not
-	this._mainDivId = 'keypad-div'; // The ID of the main keypad division
-	this._appendClass = 'keypad-append'; // The name of the append marker class
-	this._triggerClass = 'keypad-trigger'; // The name of the trigger marker class
-	this._uuid = new Date().getTime();
 	this.regional = []; // Available regional settings, indexed by language code
 	this.regional[''] = { // Default regional settings
 		buttonText: '...', // Display text for trigger button
@@ -91,6 +87,14 @@ $.extend(Keypad.prototype, {
 	/* Class name added to elements to indicate already configured with keypad. */
 	markerClassName: 'hasKeypad',
 	
+	_mainDivId: 'keypad-div', // The ID of the main keypad division
+	_inlineClass: 'keypad-inline', // The name of the inline marker class
+	_appendClass: 'keypad-append', // The name of the append marker class
+	_triggerClass: 'keypad-trigger', // The name of the trigger marker class
+	_disableClass: 'keypad-disabled', // The name of the disabled covering marker class
+	_inlineEntryClass: 'keypad-keyentry', // The name of the inline entry marker class
+	_coverClass: 'keypad-cover', // The name of the IE select cover marker class
+	
 	/* Override the default settings for all instances of keypad. 
 	   @param  settings  (object) the new settings to use as defaults
 	   @return  (object) the manager object */
@@ -103,21 +107,21 @@ $.extend(Keypad.prototype, {
 	   @param  target    (element) the target text field
 	   @param  settings  (object) the new settings to use for this instance */
 	_attachKeypad: function(target, settings) {
-		if (!target.id) {
-			target.id = 'kp' + ++this._uuid;
-		}
-		var inst = this._newInst($(target));
+		var $target = $(target);
+		var inline = (target.nodeName.toLowerCase() != 'input' &&
+			target.nodeName.toLowerCase() != 'textarea');
+		var keyEntry = (!inline ? null :
+			$('<input type="text" class="' + this._inlineEntryClass + '" disabled="disabled"/>'));
+		var inst = {_input: (inline ? keyEntry : $target), _inline: inline,
+			_mainDiv: (inline ? $('<div class="' + this._inlineClass + '"></div>') :
+			$.keypad.mainDiv), ucase: false};
 		inst.settings = $.extend({}, settings || {}); 
 		this._connectKeypad(target, inst);
-	},
-
-	/* Create a new instance object.
-	   @param  target  (jQuery object) the target text field
-	   @return  (object) the instance settings object */
-	_newInst: function(target) {
-		var id = target[0].id.replace(/([:\[\]\.])/g, '\\\\$1'); // escape jQuery meta chars
-		return {id: id, field: target, // associated target
-			mainDiv: $.keypad.mainDiv, ucase: false};
+		if (inline) {
+			$target.append(keyEntry).append(inst._mainDiv).
+				bind('click.keypad', function() { keyEntry.focus(); });
+			this._updateKeypad(inst);
+		}
 	},
 
 	/* Attach the keypad to a text field.
@@ -134,37 +138,39 @@ $.extend(Keypad.prototype, {
 			field[isRTL ? 'before' : 'after'](
 				'<span class="' + this._appendClass + '">' + appendText + '</span>');
 		}
-		var showOn = this._get(inst, 'showOn');
-		if (showOn == 'focus' || showOn == 'both') { // pop-up keypad when in the marked field
-			field.focus(this._showKeypad);
-		}
-		if (showOn == 'button' || showOn == 'both') { // pop-up keypad when button clicked
-			var buttonText = this._get(inst, 'buttonText');
-			var buttonStatus = this._get(inst, 'buttonStatus');
-			var buttonImage = this._get(inst, 'buttonImage');
-			var trigger = $(this._get(inst, 'buttonImageOnly') ? 
-				$('<img/>').attr(
-					{src: buttonImage, alt: buttonStatus, title: buttonStatus}) :
+		if (!inst._inline) {
+			var showOn = this._get(inst, 'showOn');
+			if (showOn == 'focus' || showOn == 'both') { // pop-up keypad when in the marked field
+				field.focus(this._showKeypad).keydown(this._doKeyDown);
+			}
+			if (showOn == 'button' || showOn == 'both') { // pop-up keypad when button clicked
+				var buttonText = this._get(inst, 'buttonText');
+				var buttonStatus = this._get(inst, 'buttonStatus');
+				var buttonImage = this._get(inst, 'buttonImage');
+				var trigger = $(this._get(inst, 'buttonImageOnly') ? 
+					$('<img src="' + buttonImage + '" alt="' +
+					buttonStatus + '" title="' + buttonStatus + '"/>') :
 				$('<button type="button" title="' + buttonStatus + '"></button>').
 					html(buttonImage == '' ? buttonText :
-					$('<img/>').attr({src: buttonImage})));
-			field[isRTL ? 'before' : 'after'](trigger);
-			trigger.addClass(this._triggerClass).click(function() {
-				if ($.keypad._keypadShowing && $.keypad._lastField == target) {
-					$.keypad._hideKeypad();
-				}
-				else {
-					$.keypad._showKeypad(target);
-				}
-				return false;
-			});
+					$('<img src="' + buttonImage + '"/>')));
+				field[isRTL ? 'before' : 'after'](trigger);
+				trigger.addClass(this._triggerClass).click(function() {
+					if ($.keypad._keypadShowing && $.keypad._lastField == target) {
+						$.keypad._hideKeypad();
+					}
+					else {
+						$.keypad._showKeypad(target);
+					}
+					return false;
+				});
+			}
 		}
 		inst.saveReadonly = field.attr('readonly');
 		field.addClass(this.markerClassName).
 			attr('readonly', (this._get(inst, 'keypadOnly') ? 'readonly' : '')).
-			bind("setData.keypad", function(event, key, value) {
+			bind('setData.keypad', function(event, key, value) {
 				inst.settings[key] = value;
-			}).bind("getData.keypad", function(event, key) {
+			}).bind('getData.keypad', function(event, key) {
 				return this._get(inst, key);
 			});
 		$.data(target, PROP_NAME, inst);
@@ -179,28 +185,38 @@ $.extend(Keypad.prototype, {
 		}
 		var inst = $.data(target, PROP_NAME);
 		if (this._curInst == inst) {
-			this._hideKeypad(null);
+			this._hideKeypad();
 		}
 		$target.siblings('.' + this._appendClass).remove().end().
 			siblings('.' + this._triggerClass).remove().end().
+			prev('.' + this._inlineEntryClass).remove();
+		$target.empty().unbind('focus', this._showKeypad).
 			removeClass(this.markerClassName).
-			attr('readonly', inst.saveReadonly).
-			unbind('focus', this._showKeypad);
+			attr('readonly', inst.saveReadonly);
+		$.removeData(inst._input[0], PROP_NAME);
 		$.removeData(target, PROP_NAME);
 	},
 
 	/* Enable the keypad for a jQuery selection.
 	   @param  target  (element) the target text field */
 	_enableKeypad: function(target) {
-		var $target = $(target);
-		if (!$target.hasClass(this.markerClassName)) {
+		var control = $(target);
+		if (!control.hasClass(this.markerClassName)) {
 			return;
 		}
-		target.disabled = false;
-		$target.siblings('button.' + this._triggerClass).
-		each(function() { this.disabled = false; }).end().
-			siblings('img.' + this._triggerClass).
-			css({opacity: '1.0', cursor: ''});
+		var nodeName = target.nodeName.toLowerCase();
+		if (nodeName == 'input' || nodeName == 'textarea') {
+			target.disabled = false;
+			control.siblings('button.' + this._triggerClass).
+				each(function() { this.disabled = false; }).end().
+				siblings('img.' + this._triggerClass).
+				css({opacity: '1.0', cursor: ''});
+		}
+		else if (nodeName == 'div' || nodeName == 'span') {
+			control.children('.' + this._disableClass).remove();
+			var inst = $.data(target, PROP_NAME);
+			inst._mainDiv.find('button').attr('disabled', '');
+		}
 		this._disabledFields = $.map(this._disabledFields,
 			function(value) { return (value == target ? null : value); }); // delete entry
 	},
@@ -208,15 +224,36 @@ $.extend(Keypad.prototype, {
 	/* Disable the keypad for a jQuery selection.
 	   @param  target  (element) the target text field */
 	_disableKeypad: function(target) {
-		var $target = $(target);
-		if (!$target.hasClass(this.markerClassName)) {
+		var control = $(target);
+		if (!control.hasClass(this.markerClassName)) {
 			return;
 		}
+		var nodeName = target.nodeName.toLowerCase();
+		if (nodeName == 'input' || nodeName == 'textarea') {
 		target.disabled = true;
-		$target.siblings('button.' + this._triggerClass).
+			control.siblings('button.' + this._triggerClass).
 			each(function() { this.disabled = true; }).end().
 			siblings('img.' + this._triggerClass).
 			css({opacity: '0.5', cursor: 'default'});
+		}
+		else if (nodeName == 'div' || nodeName == 'span') {
+			var inline = control.children('.' + this._inlineClass);
+			var offset = inline.offset();
+			var relOffset = {left: 0, top: 0};
+			inline.parents().each(function() {
+				if ($(this).css('position') == 'relative') {
+					relOffset = $(this).offset();
+					return false;
+				}
+			});
+			var extras = this._getExtras(inline);
+			control.prepend('<div class="' + this._disableClass + '" style="width: ' +
+				(inline.width() + extras[0]) + 'px; height: ' + (inline.height() + extras[1]) +
+				'px; left: ' + (offset.left - relOffset.left) +
+				'px; top: ' + (offset.top - relOffset.top) + 'px;"></div>');
+			var inst = $.data(target, PROP_NAME);
+			inst._mainDiv.find('button').attr('disabled', 'disabled');
+		}
 		this._disabledFields = $.map(this._disabledFields,
 			function(value) { return (value == target ? null : value); }); // delete entry
 		this._disabledFields[this._disabledFields.length] = target;
@@ -232,7 +269,7 @@ $.extend(Keypad.prototype, {
 	/* Update the settings for keypad attached to a text field
 	   @param  target  (element) the target text field
 	   @param  name    (object) the new settings to update or
-	                   (string) the name of the setting to change or
+	                   (string) the name of the setting to change
 	   @param  value   (any) the new value for the setting (omit if above is an object) */
 	_changeKeypad: function(target, name, value) {
 		var settings = name || {};
@@ -243,7 +280,7 @@ $.extend(Keypad.prototype, {
 		var inst = $.data(target, PROP_NAME);
 		if (inst) {
 			if (this._curInst == inst) {
-				this._hideKeypad(null);
+				this._hideKeypad();
 			}
 			extendRemove(inst.settings, settings);
 			this._updateKeypad(inst);
@@ -276,34 +313,37 @@ $.extend(Keypad.prototype, {
 		var offset = {left: $.keypad._pos[0], top: $.keypad._pos[1]};
 		$.keypad._pos = null;
 		// determine sizing offscreen
-		inst.mainDiv.css({position: 'absolute', display: 'block', top: '-1000px',
+		inst._mainDiv.css({position: 'absolute', display: 'block', top: '-1000px',
 			width: ($.browser.opera ? '1000px' : 'auto')});
 		$.keypad._updateKeypad(inst);
 		// and adjust position before showing
 		offset = $.keypad._checkOffset(inst, offset, isFixed);
-		inst.mainDiv.css({position: (isFixed ? 'fixed' : 'absolute'), display: 'none',
+		inst._mainDiv.css({position: (isFixed ? 'fixed' : 'absolute'), display: 'none',
 			left: offset.left + 'px', top: offset.top + 'px'});
 		var showAnim = $.keypad._get(inst, 'showAnim') || 'show';
 		var duration = $.keypad._get(inst, 'duration');
 		var postProcess = function() {
 			$.keypad._keypadShowing = true;
-			if ($.browser.msie && parseInt($.browser.version, 10) < 7) { // fix IE < 7 select problems
-				var extras = $.keypad._getExtras(inst.mainDiv);
-				$('iframe.keypad-cover').css({width: inst.mainDiv.width() + extras[0],
-					height: inst.mainDiv.height() + extras[1]});
+			if (!inst._inline && $.browser.msie && parseInt($.browser.version, 10) < 7) {
+				// fix IE < 7 select problems
+				var extras = $.keypad._getExtras(inst._mainDiv);
+				$('iframe.' + $.keypad._coverClass).css({
+					width: inst._mainDiv.width() + extras[0],
+					height: inst._mainDiv.height() + extras[1]});
 			}
 		};
 		if ($.effects && $.effects[showAnim]) {
-			inst.mainDiv.show(showAnim, $.keypad._get(inst, 'showOptions'), duration, postProcess);
+			inst._mainDiv.show(showAnim, $.keypad._get(inst, 'showOptions'),
+				duration, postProcess);
 		}
 		else {
-			inst.mainDiv[showAnim](duration, postProcess);
+			inst._mainDiv[showAnim](duration, postProcess);
 		}
 		if (duration == '') {
 			postProcess();
 		}
-		if (inst.field[0].type != 'hidden') {
-			inst.field[0].focus();
+		if (inst._input[0].type != 'hidden') {
+			inst._input[0].focus();
 		}
 		$.keypad._curInst = inst;
 	},
@@ -311,14 +351,15 @@ $.extend(Keypad.prototype, {
 	/* Generate the keypad content.
 	   @param  inst  (object) the instance settings */
 	_updateKeypad: function(inst) {
-		var extras = this._getExtras(inst.mainDiv);
-		var dims = {width: inst.mainDiv.width() + extras[0],
-			height: inst.mainDiv.height() + extras[1]};
-		inst.mainDiv.empty().append(this._generateHTML(inst)).
-			find('iframe.keypad-cover').
+		var extras = this._getExtras(inst._mainDiv);
+		var dims = {width: inst._mainDiv.width() + extras[0],
+			height: inst._mainDiv.height() + extras[1]};
+		inst._mainDiv.empty().append(this._generateHTML(inst)).
+			find('iframe.' + $.keypad._coverClass).
 			css({width: dims.width, height: dims.height});
-		inst.mainDiv.removeClass().addClass(this._get(inst, 'keypadClass') +
-			(this._get(inst, 'isRTL') ? ' keypad-rtl' : ''));
+		inst._mainDiv.removeClass().addClass(this._get(inst, 'keypadClass') +
+			(this._get(inst, 'isRTL') ? ' keypad-rtl' : '') +
+			(inst._inline ? this._inlineClass : ''));
 	},
 
 	/* Retrieve the size of borders and padding for an element.
@@ -326,7 +367,7 @@ $.extend(Keypad.prototype, {
 	   @return  (number[2]) the horizontal and vertical sizes */
 	_getExtras: function(elem) {
 		var convert = function(value) {
-			return {thin: 1, medium: 2, thick: 3}[value] || value;
+			return {thin: 1, medium: 3, thick: 5}[value] || value;
 		};
 		return [parseInt(convert(elem.css('border-left-width')), 10) +
 			parseInt(convert(elem.css('border-right-width')), 10) +
@@ -342,7 +383,7 @@ $.extend(Keypad.prototype, {
 	   @param  isFixed  (boolean) true if the text field is fixed in position
 	   @return  (object) the updated offset */
 	_checkOffset: function(inst, offset, isFixed) {
-		var pos = inst.field ? this._findPos(inst.field[0]) : null;
+		var pos = inst._input ? this._findPos(inst._input[0]) : null;
 		var browserWidth = window.innerWidth || document.documentElement.clientWidth;
 		var browserHeight = window.innerHeight || document.documentElement.clientHeight;
 		var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
@@ -350,25 +391,26 @@ $.extend(Keypad.prototype, {
 		if (($.browser.msie && parseInt($.browser.version, 10) < 7) || $.browser.opera) {
 			// recalculate width as otherwise set to 100%
 			var width = 0;
-			$('.keypad-row', inst.mainDiv).find('button:last').each(function() {
+			$('.keypad-row', inst._mainDiv).find('button:last').each(function() {
 				width = Math.max(width, this.offsetLeft + this.offsetWidth +
 					parseInt($(this).css('margin-right'), 10));
 			});
-			inst.mainDiv.css('width', width);
+			inst._mainDiv.css('width', width);
 		}
 		// reposition keypad panel horizontally if outside the browser window
-		if (this._get(inst, 'isRTL') || (offset.left + inst.mainDiv.width() - scrollX) > browserWidth) {
+		if (this._get(inst, 'isRTL') || (offset.left + inst._mainDiv.width() - scrollX) > browserWidth) {
 			offset.left = Math.max((isFixed ? 0 : scrollX),
-				pos[0] + (inst.field ? inst.field.width() : 0) - (isFixed ? scrollX : 0) - inst.mainDiv.width() -
+				pos[0] + (inst._input ? inst._input.width() : 0) -
+				(isFixed ? scrollX : 0) - inst._mainDiv.width() -
 				(isFixed && $.browser.opera ? document.documentElement.scrollLeft : 0));
 		}
 		else {
 			offset.left -= (isFixed ? scrollX : 0);
 		}
 		// reposition keypad panel vertically if outside the browser window
-		if ((offset.top + inst.mainDiv.height() - scrollY) > browserHeight) {
+		if ((offset.top + inst._mainDiv.height() - scrollY) > browserHeight) {
 			offset.top = Math.max((isFixed ? 0 : scrollY),
-				pos[1] - (isFixed ? scrollY : 0) - (this._inDialog ? 0 : inst.mainDiv.height()) -
+				pos[1] - (isFixed ? scrollY : 0) - inst._mainDiv.height() -
 				(isFixed && $.browser.opera ? document.documentElement.scrollTop : 0));
 		}
 		else {
@@ -400,22 +442,36 @@ $.extend(Keypad.prototype, {
 			duration = (duration != null ? duration : this._get(inst, 'duration'));
 			var showAnim = this._get(inst, 'showAnim');
 			if (duration != '' && $.effects && $.effects[showAnim]) {
-				inst.mainDiv.hide(showAnim, $.keypad._get(inst, 'showOptions'),
+				inst._mainDiv.hide(showAnim, $.keypad._get(inst, 'showOptions'),
 					duration);
 			}
 			else {
-				inst.mainDiv[(duration == '' ? 'hide' : (showAnim == 'slideDown' ? 'slideUp' :
+				inst._mainDiv[(duration == '' ? 'hide' : (showAnim == 'slideDown' ? 'slideUp' :
 					(showAnim == 'fadeIn' ? 'fadeOut' : 'hide')))](duration);
 			}
-			var onClose = this._get(inst, 'onClose');
-			if (onClose) {
-				onClose.apply((inst.field ? inst.field[0] : null),
-					[inst.field.val(), inst]);  // trigger custom callback
-			}
+		}
+		var onClose = this._get(inst, 'onClose');
+		if (onClose) {
+			onClose.apply((inst._input ? inst._input[0] : null),
+				[inst._input.val(), inst]);  // trigger custom callback
+		}
+		if (this._keypadShowing) {
 			this._keypadShowing = false;
 			this._lastField = null;
 		}
+		if (inst._inline) {
+			inst._input.val('');
+		}
 		this._curInst = null;
+	},
+
+	/* Handle keystrokes.
+	   @param  e  (event) the key event */
+	_doKeyDown: function(e) {
+		if (e.keyCode == 9) { // Tab out
+			$.keypad.mainDiv.stop(true, true);
+			$.keypad._hideKeypad(null, '');
+		}
 	},
 
 	/* Close keypad if clicked elsewhere.
@@ -434,57 +490,51 @@ $.extend(Keypad.prototype, {
 	},
 
 	/* Toggle between upper and lower case.
-	   @param  id  (string) the ID of the instance to toggle */
-	_shiftKeypad: function(id) {
-		var target = $(id);
-		var inst = $.data(target[0], PROP_NAME);
+	   @param  inst  (object) the instance settings */
+	_shiftKeypad: function(inst) {
 		inst.ucase = !inst.ucase;
 		this._updateKeypad(inst);
-		inst.field.focus(); // for further typing
+		inst._input.focus(); // for further typing
 	},
 
 	/* Erase the text field.
-	   @param  id  (string) the ID of the instance to clear */
-	_clearValue: function(id) {
-		var target = $(id);
-		var inst = $.data(target[0], PROP_NAME);
+	   @param  inst  (object) the instance settings */
+	_clearValue: function(inst) {
 		this._setValue(inst, '', 0);
 	},
 
 	/* Erase the last character.
-	   @param  id  (string) the ID of the instance to back */
-	_backValue: function(id) {
-		var target = $(id);
-		var inst = $.data(target[0], PROP_NAME);
-		var field = inst.field[0];
-		var value = inst.field.val();
+	   @param  inst  (object) the instance settings */
+	_backValue: function(inst) {
+		var field = inst._input[0];
+		var value = inst._input.val();
 		var range = [value.length, value.length];
 		if (field.setSelectionRange) { // Mozilla
-			range = (inst.field.attr('readonly') ? range :
+			range = (inst._input.attr('readonly') ? range :
 				[field.selectionStart, field.selectionEnd]);
 		}
 		else if (field.createTextRange) { // IE
-			range = (inst.field.attr('readonly') ? range : this._getIERange(field));
+			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+				range : this._getIERange(field));
 		}
 		this._setValue(inst, (value.length == 0 ? '' :
 			value.substr(0, range[0] - 1) + value.substr(range[1])), range[0] - 1);
 	},
 
 	/* Update the text field with the selected value.
-	   @param  id     (string) the ID of the instance to set
+	   @param  inst   (object) the instance settings
 	   @param  value  (string) the new character to add */
-	_selectValue: function(id, value) {
-		var target = $(id);
-		var inst = $.data(target[0], PROP_NAME);
-		var field = inst.field[0];
-		var curValue = inst.field.val();
+	_selectValue: function(inst, value) {
+		var field = inst._input[0];
+		var curValue = inst._input.val();
 		var range = [curValue.length, curValue.length];
 		if (field.setSelectionRange) { // Mozilla
-			range = (inst.field.attr('readonly') ? range :
+			range = (inst._input.attr('readonly') ? range :
 				[field.selectionStart, field.selectionEnd]);
 		}
 		else if (field.createTextRange) { // IE
-			range = (inst.field.attr('readonly') ? range : this._getIERange(field));
+			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+				range : this._getIERange(field));
 		}
 		var pos = range[0] + value.length;
 		value = curValue.substr(0, range[0]) + value + curValue.substr(range[1]);
@@ -546,22 +596,22 @@ $.extend(Keypad.prototype, {
 	   @param  value  (string) the new value for the text field
 	   @param  pos    (int) the new cursor position */
 	_setValue: function(inst, value, pos) {
-		var maxlen = inst.field.attr('maxlength');
+		var maxlen = inst._input.attr('maxlength');
 		if (maxlen > -1) {
 			value = value.substr(0, maxlen);
 		}
-		inst.field.val(value);
+		inst._input.val(value);
 		var onKeypress = this._get(inst, 'onKeypress');
 		if (onKeypress) { // trigger custom callback
-			onKeypress.apply((inst.field ? inst.field[0] : null), [value, inst]);
+			onKeypress.apply((inst._input ? inst._input[0] : null), [value, inst]);
 		}
 		else {
-			inst.field.trigger('change'); // fire the change event
+			inst._input.trigger('change'); // fire the change event
 		}
-		if (inst.field.css('display') != 'hidden') {
-			inst.field.focus(); // for further typing
+		if (inst._input.css('display') != 'hidden') {
+			inst._input.focus(); // for further typing
 		}
-		var field = inst.field[0];
+		var field = inst._input[0];
 		if (field.setSelectionRange) { // Mozilla
 			field.setSelectionRange(pos, pos);
 		}
@@ -583,7 +633,7 @@ $.extend(Keypad.prototype, {
 
 	/* Generate the HTML for the current state of the keypad.
 	   @param  inst  (object) the instance settings
-	   @return  (string) the HTML for this keypad */
+	   @return  (jQuery) the HTML for this keypad */
 	_generateHTML: function(inst) {
 		var isRTL = this._get(inst, 'isRTL');
 		var prompt = this._get(inst, 'prompt');
@@ -599,34 +649,40 @@ $.extend(Keypad.prototype, {
 				}
 				html += (ch == this.SPACE ? '<div class="keypad-space"></div>' :
 					(ch == this.HALF_SPACE ? '<div class="keypad-half-space"></div>' :
-					'<button type="button" class="keypad-key' + (ch == this.CLEAR ? ' keypad-clear' :
+					'<button type="button" class="keypad-key' +
+					(ch == this.CLEAR ? ' keypad-clear' :
 					(ch == this.BACK ? ' keypad-back' :
 					(ch == this.CLOSE ? ' keypad-close' :
 					(ch == this.SHIFT ? ' keypad-shift' : '')))) + '" ' + 
 					'title="' + (ch == this.CLEAR ? this._get(inst, 'clearStatus') :
 					(ch == this.BACK ? this._get(inst, 'backStatus') :
 					(ch == this.CLOSE ? this._get(inst, 'closeStatus') :
-					(ch == this.SHIFT ? this._get(inst, 'shiftStatus') : '')))) + '" ' +
-					'onmousedown="jQuery(this).addClass(\'keypad-key-down\')" ' +
-					'onmouseup="jQuery(this).removeClass(\'keypad-key-down\')" ' +
-					'onmouseout="jQuery(this).removeClass(\'keypad-key-down\')" ' +
-					'onclick="jQuery.keypad.' +
-					(ch == this.CLEAR ? '_clearValue(\'#' + inst.id + '\')">' +
-					this._get(inst, 'clearText') :
-					(ch == this.BACK ? '_backValue(\'#' + inst.id + '\')">' +
-					this._get(inst, 'backText') :
-					(ch == this.CLOSE ? '_hideKeypad()">' + this._get(inst, 'closeText') :
-					(ch == this.SHIFT ? '_shiftKeypad(\'#' + inst.id + '\')">' +
-					this._get(inst, 'shiftText') :
-					'_selectValue(\'#' + inst.id + '\', \'' + (ch == '"' ? '&quot;' :
-					(ch == '\'' || ch == '\\' ? '\\' : '') + ch) + '\')">' +
+					(ch == this.SHIFT ? this._get(inst, 'shiftStatus') : '')))) + '">' +
+					(ch == this.CLEAR ? this._get(inst, 'clearText') :
+					(ch == this.BACK ? this._get(inst, 'backText') :
+					(ch == this.CLOSE ? this._get(inst, 'closeText') :
+					(ch == this.SHIFT ? this._get(inst, 'shiftText') :
 					(ch == ' ' ? '&nbsp;' : ch))))) + '</button>'));
 			}
 			html += '</div>';
 		}
 		html += '<div style="clear: both;"></div>' + 
-			($.browser.msie && parseInt($.browser.version, 10) < 7 ? 
-			'<iframe src="javascript:false;" class="keypad-cover"></iframe>' : '');
+			(!inst._inline && $.browser.msie && parseInt($.browser.version, 10) < 7 ? 
+			'<iframe src="javascript:false;" class="' + $.keypad._coverClass + '"></iframe>' : '');
+		html = $(html);
+		var thisInst = inst;
+		html.find('button').mousedown(function() { $(this).addClass('keypad-key-down'); }).
+			mouseup(function() { $(this).removeClass('keypad-key-down'); }).
+			mouseout(function() { $(this).removeClass('keypad-key-down'); }).
+			filter('.keypad-clear').click(function() { $.keypad._clearValue(thisInst); }).end().
+			filter('.keypad-back').click(function() { $.keypad._backValue(thisInst); }).end().
+			filter('.keypad-close').click(function() {
+				$.keypad._curInst = (thisInst._inline ? thisInst : $.keypad._curInst);
+				$.keypad._hideKeypad();
+			}).end().
+			filter('.keypad-shift').click(function() { $.keypad._shiftKeypad(thisInst); }).end().
+			not('.keypad-clear,.keypad-back,.keypad-close,.keypad-shift').
+			click(function() { $.keypad._selectValue(thisInst, $(this).text()); });
 		return html;
 	},
 

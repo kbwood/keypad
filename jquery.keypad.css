@@ -1,4 +1,4 @@
-/* Main style sheet for jQuery Keypad */
+/* Main style sheet for jQuery Keypad v1.1.0 */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -17,6 +17,23 @@ img.keypad-trigger {
 	background-color: #fff;
 	font-family: Arial,Helvetica,sans-serif;
 	font-size: 14px;
+}
+.keypad-keyentry {
+	width: 0px;
+	z-index: -10;
+}
+.keypad-inline {
+	position: relative;
+	top: -1.5em;
+	border: 1px solid #888;
+	background-color: #f4f4f4;
+}
+.keypad-disabled {
+	position: absolute;
+	z-index: 100;
+	background-color: white;
+	opacity: 0.5;
+	filter: alpha(opacity=50);
 }
 .keypad-rtl {
 	direction: rtl;
@@ -49,6 +66,9 @@ img.keypad-trigger {
 	background-color: #f4f4f4;
 	text-align: center;
 	cursor: pointer;
+}
+.keypad-key[disabled] {
+	border: 2px outset;
 }
 .keypad-key-down {
 }
