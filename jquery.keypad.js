@@ -1,5 +1,5 @@
 ﻿/* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.4.1.
+   Keypad field entry extension for jQuery v1.4.2.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -211,8 +211,8 @@ $.extend(Keypad.prototype, {
 			}
 		}
 		inst.saveReadonly = field.attr('readonly');
-		field.addClass(this.markerClassName).
-			attr('readonly', (this._get(inst, 'keypadOnly') ? 'readonly' : '')).
+		field.addClass(this.markerClassName)
+			[this._get(inst, 'keypadOnly') ? 'attr' : 'removeAttr']('readonly', true).
 			bind('setData.keypad', function(event, key, value) {
 				inst.settings[key] = value;
 			}).bind('getData.keypad', function(event, key) {
@@ -236,8 +236,8 @@ $.extend(Keypad.prototype, {
 			siblings('.' + this._triggerClass).remove().end().
 			prev('.' + this._inlineEntryClass).remove();
 		$target.empty().unbind('focus', this._showKeypad).
-			removeClass(this.markerClassName).
-			attr('readonly', inst.saveReadonly);
+			removeClass(this.markerClassName)
+			[inst.saveReadonly ? 'attr' : 'removeAttr']('readonly', true);
 		$.removeData(inst._input[0], PROP_NAME);
 		$.removeData(target, PROP_NAME);
 	},
