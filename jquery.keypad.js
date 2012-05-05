@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.2.1.
+   Keypad field entry extension for jQuery v1.2.2.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -547,21 +547,43 @@ $.extend(Keypad.prototype, {
 	   @param  inst   (object) the instance settings
 	   @param  value  (string) the new character to add */
 	_selectValue: function(inst, value) {
-		var field = inst._input[0];
-		var newValue = inst._input.val();
+		this.insertValue(inst._input[0], value);
+		this._setValue(inst, inst._input.val());
+		this._notifyKeypress(inst, value);
+	},
+
+	/* Update the text field with the selected value.
+	   @param  input  (element) the input field or
+	                  (jQuery) jQuery collection
+	   @param  value  (string) the new character to add */
+	insertValue: function(input, value) {
+		input = (input.jquery ? input : $(input));
+		var field = input[0];
+		var newValue = input.val();
 		var range = [newValue.length, newValue.length];
 		if (field.setSelectionRange) { // Mozilla
-			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+			range = (input.attr('readonly') || input.attr('disabled') ?
 				range : [field.selectionStart, field.selectionEnd]);
 		}
 		else if (field.createTextRange) { // IE
-			range = (inst._input.attr('readonly') || inst._input.attr('disabled') ?
+			range = (input.attr('readonly') || input.attr('disabled') ?
 				range : this._getIERange(field));
 		}
-		var pos = range[0] + value.length;
-		newValue = newValue.substr(0, range[0]) + value + newValue.substr(range[1]);
-		this._setValue(inst, newValue, pos);
-		this._notifyKeypress(inst, value);
+		input.val(newValue.substr(0, range[0]) + value + newValue.substr(range[1]));
+		pos = range[0] + value.length;
+		if (input.css('display') != 'none') {
+			input.focus(); // for further typing
+		}
+		if (field.setSelectionRange) { // Mozilla
+			if (input.css('display') != 'none') {
+				field.setSelectionRange(pos, pos);
+			}
+		}
+		else if (field.createTextRange) { // IE
+			var range = field.createTextRange();
+			range.move('character', pos);
+			range.select();
+		}
 	},
 
 	/* Get the coordinates for the selected area in the text field in IE.
@@ -616,9 +638,8 @@ $.extend(Keypad.prototype, {
 	/* Set the text field to the selected value,
 	   and trigger any on change event.
 	   @param  inst   (object) the instance settings
-	   @param  value  (string) the new value for the text field
-	   @param  pos    (int) the new cursor position */
-	_setValue: function(inst, value, pos) {
+	   @param  value  (string) the new value for the text field */
+	_setValue: function(inst, value) {
 		var maxlen = inst._input.attr('maxlength');
 		if (maxlen > -1) {
 			value = value.substr(0, maxlen);
@@ -626,20 +647,6 @@ $.extend(Keypad.prototype, {
 		inst._input.val(value);
 		if (!this._get(inst, 'onKeypress')) {
 			inst._input.trigger('change'); // fire the change event
-		}
-		if (inst._input.css('display') != 'none') {
-			inst._input.focus(); // for further typing
-		}
-		var field = inst._input[0];
-		if (field.setSelectionRange) { // Mozilla
-			if (inst._input.css('display') != 'none') {
-				field.setSelectionRange(pos, pos);
-			}
-		}
-		else if (field.createTextRange) { // IE
-			var range = field.createTextRange();
-			range.move('character', pos);
-			range.select();
 		}
 	},
 
