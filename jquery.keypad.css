@@ -1,4 +1,4 @@
-/* Main style sheet for jQuery Keypad v1.2.4 */
+/* Main style sheet for jQuery Keypad v1.3.0 */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -7,7 +7,7 @@ img.keypad-trigger {
 	margin: 2px;
 	vertical-align: middle;
 }
-#keypad-div {
+.keypad-popup {
 	display: none;
 	z-index: 10;
 	margin: 0;
@@ -43,8 +43,10 @@ img.keypad-trigger {
 }
 .keypad-prompt {
 	clear: both;
-	width: 100%;
 	text-align: center;
+}
+.keypad-prompt.ui-widget-header {
+	margin: 2px;
 }
 .keypad-row {
 	clear: both;

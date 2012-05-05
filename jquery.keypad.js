@@ -1,5 +1,5 @@
 /* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.2.4.
+   Keypad field entry extension for jQuery v1.3.0.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -49,6 +49,7 @@ function Keypad() {
 		showOptions: {}, // Options for enhanced animations
 		duration: 'normal', // Duration of display/closure
 		appendText: '', // Display text following the text field, e.g. showing the format
+		useThemeRoller: false, // True to add ThemeRoller classes
 		keypadClass: '', // Additional CSS class for the keypad for an instance
 		prompt: '', // Display text at the top of the keypad
 		layout: ['123' + this.CLOSE, '456' + this.CLEAR, '789' + this.BACK, this.SPACE + '0'], // Layout of keys
@@ -64,7 +65,7 @@ function Keypad() {
 		onClose: null // Callback when the panel is closed
 	};
 	$.extend(this._defaults, this.regional['']);
-	this.mainDiv = $('<div id="' + this._mainDivId + '" style="display: none;"></div>');
+	this.mainDiv = $('<div class="' + this._mainDivClass + '" style="display: none;"></div>');
 }
 
 var CL = '\x00';
@@ -94,12 +95,12 @@ $.extend(Keypad.prototype, {
 		'qwertyuiop\'"' + HS + '456',
 		HS + 'asdfghjkl;:' + SP + '123',
 		SP + 'zxcvbnm,.?' + SP + HS + '-0+',
-		SH + SP + SB + EN + HS + BK + CR],
+		SP + SH + SB + EN + HS + BK + CR],
 	
 	/* Class name added to elements to indicate already configured with keypad. */
 	markerClassName: 'hasKeypad',
 	
-	_mainDivId: 'keypad-div', // The ID of the main keypad division
+	_mainDivClass: 'keypad-popup', // The name of the main keypad division class
 	_inlineClass: 'keypad-inline', // The name of the inline marker class
 	_appendClass: 'keypad-append', // The name of the append marker class
 	_triggerClass: 'keypad-trigger', // The name of the trigger marker class
@@ -131,6 +132,9 @@ $.extend(Keypad.prototype, {
 			$(target).append(inst._mainDiv).
 				bind('click.keypad', function() { inst._input.focus(); });
 			this._updateKeypad(inst);
+		}
+		else if ($(target).is(':disabled')) {
+			this._disableKeypad(target);
 		}
 	},
 
@@ -381,8 +385,9 @@ $.extend(Keypad.prototype, {
 			css({left: -borders[0], top: -borders[1],
 				width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
 		inst._mainDiv.removeClass().addClass(this._get(inst, 'keypadClass') +
-			(this._get(inst, 'isRTL') ? ' keypad-rtl' : '') +
-			(inst._inline ? this._inlineClass : ''));
+			(this._get(inst, 'useThemeRoller') ? ' ui-widget ui-widget-content' : '') +
+			(this._get(inst, 'isRTL') ? ' keypad-rtl' : '') + ' ' +
+			(inst._inline ? this._inlineClass : this._mainDivClass));
 		var beforeShow = this._get(inst, 'beforeShow');
 		if (beforeShow) {
 			beforeShow.apply((inst._input ? inst._input[0] : null),
@@ -496,7 +501,7 @@ $.extend(Keypad.prototype, {
 	_doKeyDown: function(e) {
 		if (e.keyCode == 9) { // Tab out
 			$.keypad.mainDiv.stop(true, true);
-			$.keypad._hideKeypad(null, '');
+			$.keypad._hideKeypad();
 		}
 	},
 
@@ -507,11 +512,11 @@ $.extend(Keypad.prototype, {
 			return;
 		}
 		var target = $(event.target);
-		if (!target.parents().andSelf().is('#' + $.keypad._mainDivId) &&
+		if (!target.parents().andSelf().is('.' + $.keypad._mainDivClass) &&
 				!target.hasClass($.keypad.markerClassName) &&
 				!target.parents().andSelf().hasClass($.keypad._triggerClass) &&
 				$.keypad._keypadShowing) {
-			$.keypad._hideKeypad(null, '');
+			$.keypad._hideKeypad();
 		}
 	},
 
@@ -677,11 +682,12 @@ $.extend(Keypad.prototype, {
 	   @param  inst  (object) the instance settings
 	   @return  (jQuery) the HTML for this keypad */
 	_generateHTML: function(inst) {
+		var useTR = this._get(inst, 'useThemeRoller');
 		var isRTL = this._get(inst, 'isRTL');
 		var prompt = this._get(inst, 'prompt');
 		var separator = this._get(inst, 'separator');
-		var html = (!prompt ? '' :
-			'<div class="keypad-prompt">' + prompt + '</div>');
+		var html = (!prompt ? '' : '<div class="keypad-prompt' +
+			(useTR ? ' ui-widget-header ui-corner-all' : '') + '">' + prompt + '</div>');
 		var layout = this._randomiseLayout(inst);
 		for (var i = 0; i < layout.length; i++) {
 			html += '<div class="keypad-row">';
@@ -692,12 +698,12 @@ $.extend(Keypad.prototype, {
 				}
 				html += (keys[j] == this.SPACE ? '<div class="keypad-space"></div>' :
 					(keys[j] == this.HALF_SPACE ? '<div class="keypad-half-space"></div>' :
-					'<button type="button" class="keypad-key' +
-					(keys[j] == this.CLEAR ? ' keypad-clear' :
-					(keys[j] == this.BACK ? ' keypad-back' :
-					(keys[j] == this.CLOSE ? ' keypad-close' :
-					(keys[j] == this.SHIFT ? ' keypad-shift' :
-					(keys[j] == this.ENTER ? ' keypad-enter' :
+					'<button type="button" class="keypad-key' + (useTR ? ' ui-state-default' : '') +
+					(keys[j] == this.CLEAR ? ' keypad-clear' + (useTR ? ' ui-state-highlight' : '') :
+					(keys[j] == this.BACK ? ' keypad-back' + (useTR ? ' ui-state-highlight' : '') :
+					(keys[j] == this.CLOSE ? ' keypad-close' + (useTR ? ' ui-state-highlight' : '') :
+					(keys[j] == this.SHIFT ? ' keypad-shift' + (useTR ? ' ui-state-highlight' : '') :
+					(keys[j] == this.ENTER ? ' keypad-enter' + (useTR ? ' ui-state-highlight' : '') :
 					(keys[j] == this.SPACE_BAR ? ' keypad-spacebar' : '')))))) + '" ' + 
 					'title="' + (keys[j] == this.CLEAR ? this._get(inst, 'clearStatus') :
 					(keys[j] == this.BACK ? this._get(inst, 'backStatus') :
@@ -719,9 +725,10 @@ $.extend(Keypad.prototype, {
 			'<iframe src="javascript:false;" class="' + $.keypad._coverClass + '"></iframe>' : '');
 		html = $(html);
 		var thisInst = inst;
-		html.find('button').mousedown(function() { $(this).addClass('keypad-key-down'); }).
-			mouseup(function() { $(this).removeClass('keypad-key-down'); }).
-			mouseout(function() { $(this).removeClass('keypad-key-down'); }).
+		var activeClasses = 'keypad-key-down' + (useTR ? ' ui-state-active' : '');
+		html.find('button').mousedown(function() { $(this).addClass(activeClasses); }).
+			mouseup(function() { $(this).removeClass(activeClasses); }).
+			mouseout(function() { $(this).removeClass(activeClasses); }).
 			filter('.keypad-clear').click(function() { $.keypad._clearValue(thisInst); }).end().
 			filter('.keypad-back').click(function() { $.keypad._backValue(thisInst); }).end().
 			filter('.keypad-close').click(function() {
