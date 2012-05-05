@@ -1,4 +1,4 @@
-/* Main style sheet for jQuery Keypad v1.3.0 */
+/* Main style sheet for jQuery Keypad v1.4.0 */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -25,7 +25,7 @@ img.keypad-trigger {
 	display: none;
 }
 .keypad-inline {
-	background-color: #f4f4f4;
+	background-color: #fff;
 	border: 1px solid #888;
 	border-radius: 4px;
 	-moz-border-radius: 4px;
@@ -71,7 +71,7 @@ img.keypad-trigger {
 	margin: 0px;
 	width: 14px;
 }
-.keypad-key {
+.keypad-key, .keypad-special {
 	float: left;
 	margin: 2px;
 	padding: 0px;

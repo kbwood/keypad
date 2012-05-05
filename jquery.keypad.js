@@ -1,5 +1,5 @@
-/* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.3.0.
+﻿/* http://keith-wood.name/keypad.html
+   Keypad field entry extension for jQuery v1.4.0.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
    MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
@@ -14,12 +14,33 @@ var PROP_NAME = 'keypad';
    Settings for keypad fields are maintained in instance objects,
    allowing multiple different settings on the same page. */
 function Keypad() {
-	this.BS = '\x08'; // Backspace
-	this.DEL = '\x7F'; // Delete
-	this.EN = '\x0D'; // Enter
 	this._curInst = null; // The current instance in use
 	this._disabledFields = []; // List of keypad fields that have been disabled
 	this._keypadShowing = false; // True if the popup panel is showing , false if not
+	this._keyCode = 0;
+	this._specialKeys = [];
+	this.addKeyDef('CLOSE', 'close', function(inst) {
+		$.keypad._curInst = (inst._inline ? inst : $.keypad._curInst);
+		$.keypad._hideKeypad();
+	});
+	this.addKeyDef('CLEAR', 'clear', function(inst) { $.keypad._clearValue(inst); });
+	this.addKeyDef('BACK', 'back', function(inst) { $.keypad._backValue(inst); });
+	this.addKeyDef('SHIFT', 'shift', function(inst) { $.keypad._shiftKeypad(inst); });
+	this.addKeyDef('SPACE_BAR', 'spacebar', function(inst) { $.keypad._selectValue(inst, ' '); }, true);
+	this.addKeyDef('SPACE', 'space');
+	this.addKeyDef('HALF_SPACE', 'half-space');
+	this.addKeyDef('ENTER', 'enter', function(inst) { $.keypad._selectValue(inst, '\x0D'); }, true);
+	this.addKeyDef('TAB', 'tab', function(inst) { $.keypad._selectValue(inst, '\x09'); }, true);
+	// Standard US keyboard alphabetic layout
+	this.qwertyAlphabetic = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+	// Standard US keyboard layout
+	this.qwertyLayout = ['!@#$%^&*()_=' + this.HALF_SPACE + this.SPACE + this.CLOSE,
+		this.HALF_SPACE + '`~[]{}<>\\|/' + this.SPACE + '789',
+		'qwertyuiop\'"' + this.HALF_SPACE + '456',
+		this.HALF_SPACE + 'asdfghjkl;:' + this.SPACE + '123',
+		this.SPACE + 'zxcvbnm,.?' + this.SPACE + this.HALF_SPACE + '-0+',
+		'' + this.TAB + this.ENTER + this.SPACE_BAR + this.SHIFT +
+		this.HALF_SPACE + this.BACK + this.CLEAR];
 	this.regional = []; // Available regional settings, indexed by language code
 	this.regional[''] = { // Default regional settings
 		buttonText: '...', // Display text for trigger button
@@ -30,8 +51,12 @@ function Keypad() {
 		clearStatus: 'Erase all the text', // Status text for clear link
 		backText: 'Back', // Display text for back link
 		backStatus: 'Erase the previous character', // Status text for back link
+		spacebarText: '&nbsp;', // Display text for space bar
+		spacebarStatus: 'Space', // Status text for space bar
 		enterText: 'Enter', // Display text for carriage return
 		enterStatus: 'Carriage return', // Status text for carriage return
+		tabText: '→', // Display text for tab
+		tabStatus: 'Horizontal tab', // Status text for tab
 		shiftText: 'Shift', // Display text for shift link
 		shiftStatus: 'Toggle upper/lower case characters', // Status text for shift link
 		alphabeticLayout: this.qwertyAlphabetic, // Default layout for alphabetic characters
@@ -68,35 +93,7 @@ function Keypad() {
 	this.mainDiv = $('<div class="' + this._mainDivClass + '" style="display: none;"></div>');
 }
 
-var CL = '\x00';
-var CR = '\x01';
-var BK = '\x02';
-var SH = '\x03';
-var SB = '\x04';
-var SP = '\x05';
-var HS = '\x06';
-var EN = '\x07';
-
 $.extend(Keypad.prototype, {
-	CLOSE: CL, // Key marker for close button
-	CLEAR: CR, // Key marker for clear button
-	BACK: BK, // Key marker for back button
-	SHIFT: SH, // Key marker for shift button
-	SPACE_BAR: SB, // Key marker for space bar button
-	SPACE: SP, // Key marker for an empty space
-	HALF_SPACE: HS, // Key marker for an empty half space
-	ENTER: EN, // Key marker for enter button
-
-	/* Standard US keyboard alphabetic layout. */
-	qwertyAlphabetic: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
-	/* Standard US keyboard layout. */
-	qwertyLayout: ['!@#$%^&*()_=' + HS + SP + CL,
-		HS + '`~[]{}<>\\|/' + SP + '789',
-		'qwertyuiop\'"' + HS + '456',
-		HS + 'asdfghjkl;:' + SP + '123',
-		SP + 'zxcvbnm,.?' + SP + HS + '-0+',
-		SP + SH + SB + EN + HS + BK + CR],
-	
 	/* Class name added to elements to indicate already configured with keypad. */
 	markerClassName: 'hasKeypad',
 	
@@ -113,6 +110,24 @@ $.extend(Keypad.prototype, {
 	   @return  (object) the manager object */
 	setDefaults: function(settings) {
 		extendRemove(this._defaults, settings || {});
+		return this;
+	},
+
+	/* Add the definition of a special key.
+	   @param  id           (string) the identifier for this key - access via $.keypad.<id>
+	   @param  name         (string) the prefix for localisation strings and
+	                        the suffix for a class name
+	   @param  action       (function) the action performed for this key -
+	                        receives inst as a parameter
+	   @param  noHighlight  (boolean) true to suppress highlight when using ThemeRoller
+	   @return  (object) the manager object */
+	addKeyDef: function(id, name, action, noHighlight) {
+		if (this._keyCode == 32) {
+			throw 'Only 32 special keys allowed';
+		}
+		this[id] = String.fromCharCode(this._keyCode++);
+		this._specialKeys.push({code: this[id], id: id, name: name,
+			action: action, noHighlight: noHighlight});
 		return this;
 	},
 
@@ -361,8 +376,14 @@ $.extend(Keypad.prototype, {
 					width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
 		};
 		if ($.effects && $.effects[showAnim]) {
-			inst._mainDiv.show(showAnim, $.keypad._get(inst, 'showOptions'),
-				duration, postProcess);
+			var data = inst._mainDiv.data(); // Update old effects data
+			for (var key in data) {
+				if (key.match(/^ec\.storage\./)) {
+					data[key] = inst._mainDiv.css(key.replace(/ec\.storage\./, ''));
+				}
+			}
+			inst._mainDiv.data(data).show(showAnim,
+				$.keypad._get(inst, 'showOptions'), duration, postProcess);
 		}
 		else {
 			inst._mainDiv[showAnim || 'show']((showAnim ? duration : ''), postProcess);
@@ -582,16 +603,16 @@ $.extend(Keypad.prototype, {
 		}
 		input.val(newValue.substr(0, range[0]) + value + newValue.substr(range[1]));
 		pos = range[0] + value.length;
-		if (input.css('display') != 'none') {
+		if (input.is(':visible')) {
 			input.focus(); // for further typing
 		}
 		if (field.setSelectionRange) { // Mozilla
-			if (input.css('display') != 'none') {
+			if (input.is(':visible')) {
 				field.setSelectionRange(pos, pos);
 			}
 		}
 		else if (field.createTextRange) { // IE
-			var range = field.createTextRange();
+			range = field.createTextRange();
 			range.move('character', pos);
 			range.select();
 		}
@@ -696,27 +717,20 @@ $.extend(Keypad.prototype, {
 				if (inst.ucase) {
 					keys[j] = keys[j].toUpperCase();
 				}
-				html += (keys[j] == this.SPACE ? '<div class="keypad-space"></div>' :
-					(keys[j] == this.HALF_SPACE ? '<div class="keypad-half-space"></div>' :
-					'<button type="button" class="keypad-key' + (useTR ? ' ui-state-default' : '') +
-					(keys[j] == this.CLEAR ? ' keypad-clear' + (useTR ? ' ui-state-highlight' : '') :
-					(keys[j] == this.BACK ? ' keypad-back' + (useTR ? ' ui-state-highlight' : '') :
-					(keys[j] == this.CLOSE ? ' keypad-close' + (useTR ? ' ui-state-highlight' : '') :
-					(keys[j] == this.SHIFT ? ' keypad-shift' + (useTR ? ' ui-state-highlight' : '') :
-					(keys[j] == this.ENTER ? ' keypad-enter' + (useTR ? ' ui-state-highlight' : '') :
-					(keys[j] == this.SPACE_BAR ? ' keypad-spacebar' : '')))))) + '" ' + 
-					'title="' + (keys[j] == this.CLEAR ? this._get(inst, 'clearStatus') :
-					(keys[j] == this.BACK ? this._get(inst, 'backStatus') :
-					(keys[j] == this.ENTER ? this._get(inst, 'enterStatus') :
-					(keys[j] == this.CLOSE ? this._get(inst, 'closeStatus') :
-					(keys[j] == this.SHIFT ? this._get(inst, 'shiftStatus') : ''))))) + '">' +
-					(keys[j] == this.CLEAR ? this._get(inst, 'clearText') :
-					(keys[j] == this.BACK ? this._get(inst, 'backText') :
-					(keys[j] == this.CLOSE ? this._get(inst, 'closeText') :
-					(keys[j] == this.SHIFT ? this._get(inst, 'shiftText') :
-					(keys[j] == this.ENTER ? this._get(inst, 'enterText') :
-					(keys[j] == this.SPACE_BAR ? '&nbsp;' :
-					(keys[j] == ' ' ? '&nbsp;' : keys[j]))))))) + '</button>'));
+				var keyDef = this._specialKeys[keys[j].charCodeAt(0)];
+				if (keyDef) {
+					html += (keyDef.action ? '<button type="button" class="keypad-special keypad-' +
+						keyDef.name + (useTR ? ' ui-corner-all ui-state-default' +
+						(keyDef.noHighlight ? '' : ' ui-state-highlight') : '') +
+						'" title="' + this._get(inst, keyDef.name + 'Status') + '">' +
+						(this._get(inst, keyDef.name + 'Text') || '&nbsp;') + '</button>' :
+						'<div class="keypad-' + keyDef.name + '"></div>');
+				}
+				else {
+					html += '<button type="button" ' +
+						'class="keypad-key' + (useTR ? ' ui-corner-all ui-state-default' : '') + '">' +
+						(keys[j] == ' ' ? '&nbsp;' : keys[j]) + '</button>';
+				}
 			}
 			html += '</div>';
 		}
@@ -729,17 +743,12 @@ $.extend(Keypad.prototype, {
 		html.find('button').mousedown(function() { $(this).addClass(activeClasses); }).
 			mouseup(function() { $(this).removeClass(activeClasses); }).
 			mouseout(function() { $(this).removeClass(activeClasses); }).
-			filter('.keypad-clear').click(function() { $.keypad._clearValue(thisInst); }).end().
-			filter('.keypad-back').click(function() { $.keypad._backValue(thisInst); }).end().
-			filter('.keypad-close').click(function() {
-				$.keypad._curInst = (thisInst._inline ? thisInst : $.keypad._curInst);
-				$.keypad._hideKeypad();
-			}).end().
-			filter('.keypad-shift').click(function() { $.keypad._shiftKeypad(thisInst); }).end().
-			filter('.keypad-enter').click(function() { $.keypad._selectValue(thisInst, $.keypad.EN); }).end().
-			not('.keypad-clear').not('.keypad-back').not('.keypad-close').
-			not('.keypad-shift').not('.keypad-enter').
-			click(function() { $.keypad._selectValue(thisInst, $(this).text()); });
+			filter('.keypad-key').click(function() { $.keypad._selectValue(thisInst, $(this).text()); });
+		$.each(this._specialKeys, function(i, keyDef) {
+			html.find('.keypad-' + keyDef.name).click(function() {
+				keyDef.action.apply(thisInst._input, [thisInst]);
+			});
+		});
 		return html;
 	},
 

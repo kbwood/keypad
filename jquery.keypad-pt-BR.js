@@ -8,11 +8,13 @@
         clearText: 'Limpar', clearStatus: 'Limpar todo o texto',
         backText: 'Apagar', backStatus: 'Apagar o caractere anterior',
         shiftText: 'Shift', shiftStatus: 'Ativar maiúsculas/minusculas',
+		spacebarText: '&nbsp;', spacebarStatus: '',
+		enterText: 'Enter', enterStatus: '',
+		tabText: '→', tabStatus: '',
         alphabeticLayout: $.keypad.qwertyAlphabetic,
         fullLayout: $.keypad.qwertyLayout,
         isAlphabetic: $.keypad.isAlphabetic,
         isNumeric: $.keypad.isNumeric,
-        isRTL: false
-    };
+        isRTL: false};
     $.keypad.setDefaults($.keypad.regional['pt-BR']);
 })(jQuery);
