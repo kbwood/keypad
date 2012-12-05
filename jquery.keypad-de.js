@@ -29,6 +29,7 @@
 		fullLayout: $.keypad.qwertzLayout,
 		isAlphabetic: $.keypad.isAlphabetic,
 		isNumeric: $.keypad.isNumeric,
+		toUpper: $.keypad.toUpper,
 		isRTL: false};
 	$.keypad.setDefaults($.keypad.regional['de']);
 

@@ -25,6 +25,7 @@
 		fullLayout: $.keypad.azertyLayout,
 		isAlphabetic: $.keypad.isAlphabetic,
 		isNumeric: $.keypad.isNumeric,
+		toUpper: $.keypad.toUpper,
 		isRTL: false};
 	$.keypad.setDefaults($.keypad.regional['fr']);
 

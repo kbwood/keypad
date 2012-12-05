@@ -15,6 +15,7 @@
 	    fullLayout: $.keypad.qwertyLayout,
     	isAlphabetic: $.keypad.isAlphabetic,
 	    isNumeric: $.keypad.isNumeric,
+		toUpper: $.keypad.toUpper,
     	isRTL: false};
 	$.keypad.setDefaults($.keypad.regional['tr']);
 })(jQuery);
