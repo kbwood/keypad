@@ -1,4 +1,4 @@
-/* Alternate style sheet for jQuery Keypad v1.5.0. */
+/* Alternate style sheet for jQuery Keypad v1.5.1. */
 button.keypad-trigger {
 	width: 25px;
 	padding: 0px;
@@ -19,9 +19,9 @@ img.keypad-trigger {
 	background-color: #fff;
 	color: #000;
 	border: 1px solid #888;
-	border-radius: 0.25em;
 	-moz-border-radius: 0.25em;
 	-webkit-border-radius: 0.25em;
+	border-radius: 0.25em;
 }
 .keypad-keyentry {
 	display: none;
@@ -29,9 +29,9 @@ img.keypad-trigger {
 .keypad-inline {
 	background-color: #fff;
 	border: 1px solid #888;
-	border-radius: 0.25em;
 	-moz-border-radius: 0.25em;
 	-webkit-border-radius: 0.25em;
+	border-radius: 0.25em;
 }
 .keypad-disabled {
 	position: absolute;
@@ -51,30 +51,19 @@ img.keypad-trigger {
 	margin: 0.125em;
 }
 .keypad-row {
-	clear: both;
-	float: left;
 	width: 100%;
 }
 .keypad-space {
-	float: left;
+	display: inline-block;
 	margin: 0.125em;
 	width: 2em;
 }
-* html .keypad-space { /* IE6 */
-	margin: 0em;
-	width: 2.25em;
-}
 .keypad-half-space {
-	float: left;
+	display: inline-block;
 	margin: 0.125em 0.0625em;
 	width: 1em;
 }
-* html .keypad-half-space { /* IE6 */
-	margin: 0em;
-	width: 1.125em;
-}
 .keypad-key, .keypad-special {
-	float: left;
 	margin: 0.125em;
 	padding: 0em;
 	width: 2em;
@@ -92,15 +81,4 @@ img.keypad-trigger {
 }
 .keypad-clear, .keypad-back, .keypad-close, .keypad-shift {
 	font-weight: bold;
-}
-.keypad-cover {
-	display: none;
-	display/**/: block;
-	position: absolute;
-	z-index: -1;
-	filter: mask();
-	top: -4px;
-	left: -4px;
-	width: 125px;
-	height: 200px;
 }

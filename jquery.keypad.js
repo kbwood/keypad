@@ -1,8 +1,7 @@
 ﻿/* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v1.5.0.
+   Keypad field entry extension for jQuery v1.5.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
-   Dual licensed under the GPL (http://dev.jquery.com/browser/trunk/jquery/GPL-LICENSE.txt) and 
-   MIT (http://dev.jquery.com/browser/trunk/jquery/MIT-LICENSE.txt) licenses. 
+   Available under the MIT (https://github.com/jquery/jquery/blob/master/MIT-LICENSE.txt) license. 
    Please attribute the author if you use it. */
    
 (function($) { // hide the namespace
@@ -97,14 +96,13 @@ $.extend(Keypad.prototype, {
 	markerClassName: 'hasKeypad',
 	/* Name of the data property for instance settings. */
 	propertyName: 'keypad',
-	
+
 	_mainDivClass: 'keypad-popup', // The main keypad division class
 	_inlineClass: 'keypad-inline', // The inline marker class
 	_appendClass: 'keypad-append', // The append marker class
 	_triggerClass: 'keypad-trigger', // The trigger marker class
 	_disableClass: 'keypad-disabled', // The disabled covering marker class
 	_inlineEntryClass: 'keypad-keyentry', // The inline entry marker class
-	_coverClass: 'keypad-cover', // The IE select cover marker class
 	_rtlClass: 'keypad-rtl', // The right-to-left marker class
 	_rowClass: 'keypad-row', // The keypad row marker class
 	_promptClass: 'keypad-prompt', // The prompt marker class
@@ -112,7 +110,7 @@ $.extend(Keypad.prototype, {
 	_namePrefixClass: 'keypad-', // The key name marker class prefix
 	_keyClass: 'keypad-key', // The key marker class
 	_keyDownClass: 'keypad-key-down', // The key down marker class
-	
+
 	/* Override the default settings for all keypad instances.
 	   @param  settings  (object) the new settings to use as defaults
 	   @return  (Keypad) this object */
@@ -316,9 +314,9 @@ $.extend(Keypad.prototype, {
 		if (nodeName.match(/input|textarea/)) {
 			target[0].disabled = true;
 			target.siblings('button.' + this._triggerClass).
-			each(function() { this.disabled = true; }).end().
-			siblings('img.' + this._triggerClass).
-			css({opacity: '0.5', cursor: 'default'});
+				each(function() { this.disabled = true; }).end().
+				siblings('img.' + this._triggerClass).
+				css({opacity: '0.5', cursor: 'default'});
 		}
 		else if (nodeName.match(/div|span/)) {
 			var inline = target.children('.' + this._inlineClass);
@@ -368,29 +366,19 @@ $.extend(Keypad.prototype, {
 			isFixed |= $(this).css('position') == 'fixed';
 			return !isFixed;
 		});
-		if (isFixed && $.browser.opera) { // correction for Opera when fixed and scrolled
-			plugin._pos[0] -= document.documentElement.scrollLeft;
-			plugin._pos[1] -= document.documentElement.scrollTop;
-		}
 		var offset = {left: plugin._pos[0], top: plugin._pos[1]};
 		plugin._pos = null;
 		// determine sizing offscreen
-		inst._mainDiv.css({position: 'absolute', display: 'block', top: '-1000px',
-			width: ($.browser.opera ? '1000px' : 'auto')});
+		inst._mainDiv.css({position: 'absolute', display: 'block', top: '-1000px', width: 'auto'});
 		plugin._updateKeypad(inst);
 		// and adjust position before showing
 		offset = plugin._checkOffset(inst, offset, isFixed);
 		inst._mainDiv.css({position: (isFixed ? 'fixed' : 'absolute'), display: 'none',
 			left: offset.left + 'px', top: offset.top + 'px'});
 		var duration = inst.options.duration;
-		duration = (duration == 'normal' && $.ui && $.ui.version >= '1.8' ? '_default' : duration);
 		var showAnim = inst.options.showAnim;
 		var postProcess = function() {
 			plugin._keypadShowing = true;
-			var borders = plugin._getBorders(inst._mainDiv);
-			inst._mainDiv.find('iframe.' + plugin._coverClass). // IE6- only
-				css({left: -borders[0], top: -borders[1],
-					width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
 		};
 		if ($.effects && ($.effects[showAnim] || ($.effects.effect && $.effects.effect[showAnim]))) {
 			var data = inst._mainDiv.data(); // Update old effects data
@@ -403,10 +391,7 @@ $.extend(Keypad.prototype, {
 				inst.options.showOptions, duration, postProcess);
 		}
 		else {
-			inst._mainDiv[showAnim || 'show']((showAnim ? duration : ''), postProcess);
-		}
-		if (!showAnim) {
-			postProcess();
+			inst._mainDiv[showAnim || 'show']((showAnim ? duration : 0), postProcess);
 		}
 		if (inst._input[0].type != 'hidden') {
 			inst._input[0].focus();
@@ -419,13 +404,10 @@ $.extend(Keypad.prototype, {
 	_updateKeypad: function(inst) {
 		var borders = this._getBorders(inst._mainDiv);
 		inst._mainDiv.empty().append(this._generateHTML(inst)).
-			find('iframe.' + this._coverClass). // IE6- only
-			css({left: -borders[0], top: -borders[1],
-				width: inst._mainDiv.outerWidth(), height: inst._mainDiv.outerHeight()});
-		inst._mainDiv.removeClass().addClass(inst.options.keypadClass +
-			(inst.options.useThemeRoller ? ' ui-widget ui-widget-content' : '') +
-			(inst.options.isRTL ? ' ' + this._rtlClass : '') + ' ' +
-			(inst._inline ? this._inlineClass : this._mainDivClass));
+			removeClass().addClass(inst.options.keypadClass +
+				(inst.options.useThemeRoller ? ' ui-widget ui-widget-content' : '') +
+				(inst.options.isRTL ? ' ' + this._rtlClass : '') + ' ' +
+				(inst._inline ? this._inlineClass : this._mainDivClass));
 		if ($.isFunction(inst.options.beforeShow)) {
 			inst.options.beforeShow.apply((inst._input ? inst._input[0] : null),
 				[inst._mainDiv, inst]);
@@ -437,8 +419,7 @@ $.extend(Keypad.prototype, {
 	   @return  (number[2]) the left and top borders */
 	_getBorders: function(elem) {
 		var convert = function(value) {
-			var extra = ($.browser.msie ? 1 : 0);
-			return {thin: 1 + extra, medium: 3 + extra, thick: 5 + extra}[value] || value;
+			return {thin: 1, medium: 3, thick: 5}[value] || value;
 		};
 		return [parseFloat(convert(elem.css('border-left-width'))),
 			parseFloat(convert(elem.css('border-top-width')))];
@@ -455,34 +436,29 @@ $.extend(Keypad.prototype, {
 		var browserHeight = window.innerHeight || document.documentElement.clientHeight;
 		var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
 		var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
-		if (($.browser.msie && parseInt($.browser.version, 10) < 7) || $.browser.opera) {
-			// recalculate width as otherwise set to 100%
-			var width = 0;
-			inst._mainDiv.find(':not(div,iframe)').each(function() {
-				width = Math.max(width, this.offsetLeft + $(this).outerWidth() +
-					parseInt($(this).css('margin-right'), 10));
-			});
-			inst._mainDiv.css('width', width);
-		}
+		// recalculate width as otherwise set to 100%
+		var width = 0;
+		inst._mainDiv.find(':not(div)').each(function() {
+			width = Math.max(width, this.offsetLeft + $(this).outerWidth(true));
+		});
+		inst._mainDiv.css('width', width + 1);
 		// reposition keypad panel horizontally if outside the browser window
 		if (inst.options.isRTL ||
 				(offset.left + inst._mainDiv.outerWidth() - scrollX) > browserWidth) {
 			offset.left = Math.max((isFixed ? 0 : scrollX),
 				pos[0] + (inst._input ? inst._input.outerWidth() : 0) -
-				(isFixed ? scrollX : 0) - inst._mainDiv.outerWidth() -
-				(isFixed && $.browser.opera ? document.documentElement.scrollLeft : 0));
+				(isFixed ? scrollX : 0) - inst._mainDiv.outerWidth());
 		}
 		else {
-			offset.left -= (isFixed ? scrollX : 0);
+			offset.left = Math.max((isFixed ? 0 : scrollX), offset.left - (isFixed ? scrollX : 0));
 		}
 		// reposition keypad panel vertically if outside the browser window
 		if ((offset.top + inst._mainDiv.outerHeight() - scrollY) > browserHeight) {
 			offset.top = Math.max((isFixed ? 0 : scrollY),
-				pos[1] - (isFixed ? scrollY : 0) - inst._mainDiv.outerHeight() -
-				(isFixed && $.browser.opera ? document.documentElement.scrollTop : 0));
+				pos[1] - (isFixed ? scrollY : 0) - inst._mainDiv.outerHeight());
 		}
 		else {
-			offset.top -= (isFixed ? scrollY : 0);
+			offset.top = Math.max((isFixed ? 0 : scrollY), offset.top - (isFixed ? scrollY : 0));
 		}
 		return offset;
 	},
@@ -508,14 +484,13 @@ $.extend(Keypad.prototype, {
 		}
 		if (this._keypadShowing) {
 			duration = (duration != null ? duration : inst.options.duration);
-			duration = (duration == 'normal' && $.ui && $.ui.version >= '1.8' ? '_default' : duration);
 			var showAnim = inst.options.showAnim;
 			if ($.effects && ($.effects[showAnim] || ($.effects.effect && $.effects.effect[showAnim]))) {
 				inst._mainDiv.hide(showAnim, inst.options.showOptions, duration);
 			}
 			else {
 				inst._mainDiv[(showAnim == 'slideDown' ? 'slideUp' :
-					(showAnim == 'fadeIn' ? 'fadeOut' : 'hide'))](showAnim ? duration : '');
+					(showAnim == 'fadeIn' ? 'fadeOut' : 'hide'))](showAnim ? duration : 0);
 			}
 		}
 		if ($.isFunction(inst.options.onClose)) {
@@ -737,9 +712,6 @@ $.extend(Keypad.prototype, {
 			}
 			html += '</div>';
 		}
-		html += '<div style="clear: both;"></div>' + 
-			(!inst._inline && $.browser.msie && parseInt($.browser.version, 10) < 7 ? 
-			'<iframe src="javascript:false;" class="' + plugin._coverClass + '"></iframe>' : '');
 		html = $(html);
 		var thisInst = inst;
 		var activeClasses = this._keyDownClass + (inst.options.useThemeRoller ? ' ui-state-active' : '');
