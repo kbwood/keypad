@@ -6,7 +6,7 @@ This plugin attaches a popup keyboard to a text field for mouse-driven entry or 
 * Customise keypad content.
 * Preset keyboard layouts.
 * Randomise key positions.
-* 9 localisations.
+* 10 localisations.
 
 Have a look at the plugin Web site, http://keith-wood.name/keypad.html, for demonstrations of its abilities.
 
