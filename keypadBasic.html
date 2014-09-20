@@ -13,7 +13,9 @@
 <script>
 $(function () {
 	$('#defaultKeypad').keypad();
-	$('#inlineKeypad').keypad();
+	$('#inlineKeypad').keypad({onClose: function() {
+		alert($(this).val());
+	}});
 });
 </script>
 </head>

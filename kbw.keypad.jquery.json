@@ -1,7 +1,7 @@
 {
 	"name": "kbw.keypad",
 	"title": "jQuery Keypad",
-	"description": "This plugin attaches a popup keyboard to a text field for mouse-driven entry or adds an inline keypad in a division or span. * Customise keypad content. * Preset keyboard layouts. * Randomise key positions. * 10 localisations.",
+	"description": "This plugin attaches a popup keyboard to a text field for mouse-driven entry or adds an inline keypad in a division or span. * Customise keypad content. * Preset keyboard layouts. * Randomise key positions. * 12 localisations.",
 	"keywords": [
 		"i18n",
 		"input",
@@ -9,7 +9,7 @@
 		"keypad",
 		"ui"
 	],
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"author": {
 		"name": "Keith Wood",
 		"url": "http://keith-wood.name/"
@@ -24,7 +24,7 @@
 	"licenses": [
 		{
 			"type": "MIT",
-			"url": "https://github.com/jquery/jquery/blob/master/MIT-LICENSE.txt"
+			"url": "https://github.com/jquery/jquery/blob/master/LICENSE.txt"
 		}
 	],
 	"bugs": "https://github.com/kbwood/keypad/issues",
