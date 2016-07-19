@@ -1,4 +1,4 @@
-﻿/* http://keith-wood.name/keypad.html
+/* http://keith-wood.name/keypad.html
    Keypad field entry extension for jQuery v2.0.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Available under the MIT (https://github.com/jquery/jquery/blob/master/LICENSE.txt) license. 
@@ -833,7 +833,7 @@
 						(inst.options.randomiseAll ? others[o++] :
 						(inst.options.isNumeric(keys[j]) ? numerics[n++] :
 						(inst.options.isAlphabetic(keys[j]) ? alphas[a++] :
-						others[o++])))) + inst.options.separator;
+						others[o++])))) + ((j+1)<keys.length?inst.options.separator:'');
 				}
 			}
 			return newLayout;
