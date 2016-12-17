@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<title>jQuery Keypad</title>
+<link rel="stylesheet" href="css/jquery.keypad.css">
+<style>
+#inlineKeypad { width: 10em; }
+</style>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="js/jquery.plugin.min.js"></script>
+<script src="js/jquery.keypad.js"></script>
+<script>
+$(function () {
+	$('#defaultKeypad').keypad();
+	$('#inlineKeypad').keypad({onClose: function() {
+		alert($(this).val());
+	}});
+});
+</script>
+</head>
+<body>
+<h1>jQuery Keypad Basics</h1>
+<p>This page demonstrates the very basics of the
+	<a href="http://keith-wood.name/keypad.html">jQuery Keypad plugin</a>.
+	It contains the minimum requirements for using the plugin and
+	can be used as the basis for your own experimentation.</p>
+<p>For more detail see the <a href="http://keith-wood.name/keypadRef.html">documentation reference</a> page.</p>
+<p><input type="text" id="defaultKeypad"></p>
+<div id="inlineKeypad"></div>
+<dl>
+	<dt>Github</dt><dd><a href="https://github.com/kbwood/keypad">https://github.com/kbwood/keypad</a></dd>
+	<dt>Bower</dt><dd>kbw-keypad</dd>
+</dl>
+</body>
+</html>
