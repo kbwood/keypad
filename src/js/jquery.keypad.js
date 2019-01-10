@@ -1,5 +1,5 @@
 ﻿/* http://keith-wood.name/keypad.html
-   Keypad field entry extension for jQuery v2.1.0.
+   Keypad field entry extension for jQuery v2.1.1.
    Written by Keith Wood (kbwood{at}iinet.com.au) August 2008.
    Available under the MIT (http://keith-wood.name/licence.html) license. 
    Please attribute the author if you use it. */
@@ -607,6 +607,7 @@
 		_clearValue: function(inst) {
 			this._setValue(inst, '', 0);
 			this._notifyKeypress(inst, plugin.DEL);
+			inst._input.focus();
 		},
 
 		/** Erase the last character.
@@ -622,6 +623,7 @@
 			this._setValue(inst, (value.length === 0 ? '' :
 				value.substr(0, range[0] - 1) + value.substr(range[1])), range[0] - 1);
 			this._notifyKeypress(inst, plugin.BS);
+			inst._input.focus();
 		},
 
 		/** Update the text field with the selected value.
